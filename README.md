@@ -25,6 +25,30 @@ python check.py .
 No key, no signup, no account, no dependencies. One stdlib Python file that
 reads two public JSON endpoints.
 
+## What it has actually caught
+
+Not a mock. Every row below left the catalogue on the date shown, and **not one
+of them had an end-of-life date published anywhere** - which is exactly why a
+deprecation calendar could not have warned you.
+
+| vanished | model | end-of-life date published? | nearest still listed |
+|---|---|---|---|
+| 2026-08-01 | `openai/gpt-5.1-chat` | **none, ever** | `openai/gpt-5.1` |
+| 2026-08-01 | `mistralai/devstral-2512` | **none, ever** | _nothing qualifies_ |
+| 2026-07-30 | `openai/o4-mini-deep-research` | **none, ever** | _nothing qualifies_ |
+| 2026-07-30 | `openai/o3-deep-research` | **none, ever** | _nothing qualifies_ |
+| 2026-07-30 | `openai/gpt-5-codex` | **none, ever** | `openai/gpt-5.1-codex` |
+
+As of 2026-08-02. The live list is always at
+[neosignal-ai.vercel.app/gone.html](https://neosignal-ai.vercel.app/gone.html),
+and the raw records are in
+[`/api/changes.json`](https://neosignal-ai.vercel.app/api/changes.json) if you
+would rather check the claim than take it.
+
+Where the last column says nothing qualifies, that is the tool declining to
+guess. It names a replacement only when the two ids visibly sit in the same
+vendor line.
+
 ## Why not just use a deprecation calendar
 
 Because a calendar can only list what a vendor announced, and every tracker in
