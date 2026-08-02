@@ -48,10 +48,32 @@ about, and exactly the ones that take down a running product without notice.
     python check.py . --quiet
 ```
 
-A ready workflow is in [`.github/workflows/model-check.yml`](.github/workflows/model-check.yml).
-It runs on push and once a day, because the interesting case is not "did this
-PR add a dead model" - it is "did a model you shipped last month disappear
-overnight".
+Or drop this in as `.github/workflows/model-check.yml`. It runs on push and
+once a day, because the interesting case is not "did this PR add a dead model"
+- it is "did a model you shipped last month disappear overnight".
+
+```yaml
+name: model check
+
+on:
+  push:
+  pull_request:
+  schedule:
+    - cron: "17 6 * * *"
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+      - name: Check for models that are gone or shutting down
+        run: |
+          curl -sO https://neosignal-ai.vercel.app/check.py
+          python check.py . --quiet
+```
 
 | exit | meaning |
 |---|---|
