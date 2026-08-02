@@ -73,10 +73,11 @@ request:
 
 **98.5% of the catalogue carries no shutdown date at all.**
 <!--stat:end--> That is a statement about the
-catalogue, not about vendors. Some vendors do publish retirement dates on their
-own documentation and the catalogue simply does not carry them — see
-[what this does not see](#what-this-does-not-see). Either way, anything reading
-the catalogue is working from those few dates and nothing else.
+catalogue, not about vendors. Vendors do publish retirement dates on their own
+documentation; the catalogue simply does not carry them. Anything reading only
+the catalogue is working from those few dates and nothing else, which is why
+this reads
+[the vendor pages as well](#it-reads-the-vendors-own-deprecation-page-too).
 
 ## Why not just use a deprecation calendar
 
@@ -94,23 +95,37 @@ date in the catalogue beforehand. Those are exactly the ones a calendar cannot
 warn you about, and exactly the ones that take down a running product without
 notice.
 
-## What this does not see
+## It reads the vendor's own deprecation page too
 
-The other direction, stated plainly because it is the honest half of the same
-problem: **a vendor can publish a retirement date that the catalogue never
-carries, and this will not see it either.**
+A catalogue diff catches removals. It cannot catch a retirement the vendor
+announced but the catalogue never carried — and that is most of them.
 
-Measured on 2026-08-03. Anthropic's own deprecation page lists a retirement
-date of 2026-08-05 for `claude-opus-4.1`. The catalogue carries no date for it,
-or for any of Anthropic's other sixteen models. Pointed at a repository calling
-that model, this reported `no change recorded` and exited 0 — for a model with
-two days left.
+Found on 2026-08-03 by checking this tool against Anthropic's own docs:
+`claude-opus-4.1` retires 2026-08-05, the catalogue holds no date for it or any
+of Anthropic's sixteen other models, and pointed at a repository calling it
+this reported `no change recorded` and exited 0. Two days out.
 
-So the coverage is: **removals, seen the day they happen, from a daily diff**,
-plus whatever dates the catalogue happens to carry. It is not a substitute for
-your vendor's own deprecation page, and the tool no longer prints anything that
-implies it is. Closing this properly means reading vendor documentation
-directly, which is the next thing being built.
+So it now reads the deprecation pages of Anthropic, OpenAI and Google directly
+and merges them into the same record. Both sources, one answer:
+
+| | |
+|---|---|
+| models with a date in the catalogue | **5** |
+| models with a date from their vendor | **22** |
+
+Every one of those 22 carries the vendor id and page it came from, so any
+warning traces back to a row you can read yourself. The build refuses to ship
+if a claim's id does not match its source.
+
+Where the two disagree, it says so rather than picking. A model the vendor
+retired months ago while the catalogue still lists it gets exactly that
+sentence, because which side is stale is the useful part.
+
+**What it still cannot do:** a vendor page listing only deprecations says
+nothing about a model it omits. OpenAI's carries `gpt-5-2025-08-07` and no
+`gpt-5`, so the August snapshot is retiring and the rolling alias is not — and
+a date is never projected from one onto the other. Six such claims were dropped
+rather than published; one of them would have read "gpt-5 retires 2026-12-11".
 
 ## In CI
 
