@@ -68,10 +68,10 @@ request:
 <!--stat:start-->
 | | |
 |---|---|
-| models carrying a published end-of-life date | **5 of 337** |
-| vendors that publish one at all | **2 of 58** |
+| models whose catalogue entry carries an end-of-life date | **5 of 337** |
+| vendors with a dated entry in the catalogue | **2 of 58** |
 
-**98.5% of models have no shutdown date anywhere.**
+**98.5% of the catalogue carries no shutdown date at all.**
 <!--stat:end--> That is a statement about the
 catalogue, not about vendors. Some vendors do publish retirement dates on their
 own documentation and the catalogue simply does not carry them — see
@@ -210,7 +210,7 @@ speaks only when the two ids visibly sit in the same line.
 Fair. Here is everything it does, and how to check rather than take my word.
 
 <!--size:start-->
-**463 lines, one file, no dependencies.**
+**472 lines, one file, no dependencies.**
 <!--size:end--> Read it. It makes **two GET requests**, both to
 `neosignal-ai.vercel.app`, and it opens your files **read-only**. There is no
 write, no `subprocess`, no `eval`, no environment variable read, no telemetry,
