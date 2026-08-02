@@ -12,13 +12,13 @@ python check.py .
 ```
 3 models referenced in .
 
-  ok     anthropic/claude-haiku-4.5    no change recorded
-  GONE   openai/gpt-5-codex            GONE from the catalogue on 2026-07-30,
-                                       with no end-of-life date ever published
-         nearest still listed: openai/gpt-5.1-codex at $10.00 per million
+  ok     anthropic/claude-3-haiku     no change recorded
+  GONE   openai/gpt-5.1-chat          GONE from the catalogue on 2026-08-01,
+                                      with no end-of-life date ever published
+         nearest still listed: openai/gpt-5.1 at $10.00 per million
          output, against the $10.00 it cost
          src/agent.ts
-  SOON   openai/gpt-5.2-chat           shuts down 2026-08-10 - 9 days left
+  SOON   openai/gpt-5.2-chat          shuts down 2026-08-10 - 7 days left
          src/agent.ts
 
 2 need attention.
