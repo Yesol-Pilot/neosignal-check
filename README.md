@@ -12,7 +12,7 @@ python check.py .
 ```
 3 models referenced in .
 
-  ok     anthropic/claude-3-haiku     no change recorded
+  ok     anthropic/claude-fable-5     no change recorded
   GONE   openai/gpt-5.1-chat          GONE from the catalogue on 2026-08-01,
                                       with no end-of-life date ever published
          nearest still listed: openai/gpt-5.1 at $10.00 per million
@@ -40,13 +40,13 @@ of them carried an end-of-life date in the catalogue beforehand** - so nothing
 reading that catalogue could have warned you.
 
 <!--evidence:start-->
-| vanished | model | end-of-life date published? | nearest still listed |
+| vanished | model | date in the catalogue beforehand | nearest still listed |
 |---|---|---|---|
-| 2026-08-01 | `openai/gpt-5.1-chat` | **none, ever** | `openai/gpt-5.1` |
-| 2026-08-01 | `mistralai/devstral-2512` | **none, ever** | _nothing qualifies_ |
-| 2026-07-30 | `openai/o4-mini-deep-research` | **none, ever** | _nothing qualifies_ |
-| 2026-07-30 | `openai/o3-deep-research` | **none, ever** | _nothing qualifies_ |
-| 2026-07-30 | `openai/gpt-5-codex` | **none, ever** | `openai/gpt-5.1-codex` |
+| 2026-08-01 | `openai/gpt-5.1-chat` | **none** | `openai/gpt-5.1` |
+| 2026-08-01 | `mistralai/devstral-2512` | **none** | _nothing qualifies_ |
+| 2026-07-30 | `openai/o4-mini-deep-research` | **none** | _nothing qualifies_ |
+| 2026-07-30 | `openai/o3-deep-research` | **none** | _nothing qualifies_ |
+| 2026-07-30 | `openai/gpt-5-codex` | **none** | `openai/gpt-5.1-codex` |
 
 As of 2026-08-03.
 <!--evidence:end--> The live list is always at
@@ -225,7 +225,7 @@ speaks only when the two ids visibly sit in the same line.
 Fair. Here is everything it does, and how to check rather than take my word.
 
 <!--size:start-->
-**472 lines, one file, no dependencies.**
+**511 lines, one file, no dependencies.**
 <!--size:end--> Read it. It makes **two GET requests**, both to
 `neosignal-ai.vercel.app`, and it opens your files **read-only**. There is no
 write, no `subprocess`, no `eval`, no environment variable read, no telemetry,
