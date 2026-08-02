@@ -3,9 +3,18 @@
 Find out which AI models your code calls have been **deprecated or removed** -
 including the ones that were removed with no deprecation notice at all.
 
-Scope is the OpenRouter catalogue, diffed daily. A bare `gpt-5.2-chat` is
-resolved as well as the prefixed `openai/gpt-5.2-chat`, so a project calling a
-vendor SDK directly is covered when it uses the same name.
+Scope is the OpenRouter catalogue, diffed daily — but you do not have to be an
+OpenRouter user. Three spellings of the same model resolve to one entry:
+
+| you wrote | resolves to |
+|---|---|
+| `openai/gpt-5.2-chat` | the catalogue id itself |
+| `gpt-5.2-chat` | a bare name, as a vendor SDK takes it |
+| `claude-haiku-4-5-20251001` | `anthropic/claude-haiku-4.5` — the vendor's dated pin |
+
+The last one only fires where the shorter spelling can mean exactly one model.
+`gpt-4o` sits beside `gpt-4o-2024-05-13` and `gpt-4o-2024-08-06`, so a date it
+does not recognise is left alone rather than attached to a guess.
 
 ```
 curl -sO https://neosignal-ai.vercel.app/check.py

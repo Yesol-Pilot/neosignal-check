@@ -94,6 +94,23 @@ def main():
     # Short ids would collide with ordinary variable names.
     check("short names are not indexed", any(len(k) < 6 for k in bare), False)
 
+    print("\nvendor-native spellings")
+    # A vendor's own SDK does not use the catalogue's spelling. Anthropic ships
+    # a dated id with dashes where the catalogue writes a dot, so a project
+    # calling the vendor directly was invisible - which is most projects.
+    norms = N.norm_index(known)
+    check("a dated vendor id resolves to its catalogue entry",
+          norms.get(N.normalize("claude-haiku-4-5-20251001")),
+          "anthropic/claude-haiku-4.5")
+    check("a bedrock id sheds its vendor prefix and revision",
+          N.normalize("anthropic.claude-3-5-sonnet-20241022-v2:0"),
+          "claude-3-5-sonnet")
+    # The one thing this rule must never do is guess WHICH snapshot was meant.
+    ambiguous = {"openai/gpt-4o", "openai/gpt-4o-2024-05-13",
+                 "openai/gpt-4o-2024-08-06"}
+    check("a rolling alias beside its own snapshots is dropped, not guessed",
+          N.norm_index(ambiguous).get("gpt-4o"), None)
+
     root = tempfile.mkdtemp(prefix="nscheck-")
     try:
         print("\nscanning")
@@ -104,6 +121,24 @@ def main():
         write(root, "infra/main.tf", 'variable "m" { default = "openai/gpt-5.1" }')
         write(root, "node_modules/junk/a.js", 'const x = "openai/gpt-5-image";')
         write(root, "src/paths.py", 'P = "utils/helpers"\nT = "read-timeout-30"\n')
+
+        write(root, "sdk/direct.py", 'M = "claude-haiku-4-5-20251001"\n')
+        write(root, "sdk/noise.py",
+              'A = "my-app-config-2024-01-01"\nB = "internal-service-v2"\n')
+
+        found = N.scan(root, known, bare, norms)
+        # A membership test, not an exact list: the notebook fixture spells the
+        # same model out in full, and it is supposed to keep matching.
+        check("finds a vendor-native dated id in source",
+              os.path.join("sdk", "direct.py")
+              in found.get("anthropic/claude-haiku-4.5", []), True)
+        # Ordinary dashed strings that happen to carry a date or a revision must
+        # not be dragged in by the same rules that strip those suffixes off a
+        # real id. Asserted against the noise FILE rather than a total count,
+        # because normalising adds files to models already found, not models.
+        check("a dated config name is not a model",
+              [m for m, fs in found.items()
+               if any(f.endswith("noise.py") for f in fs)], [])
 
         found = N.scan(root, known, bare)
         # An extension filter cannot see a Dockerfile, and it found none of

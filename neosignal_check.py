@@ -125,6 +125,27 @@ CANDIDATE = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]*/[A-Za-z0-9][A-Za-z0-9._:-]*"
 BARE = re.compile(r"[A-Za-z][A-Za-z0-9._]*(?:-[A-Za-z0-9._]+)+")
 BARE_MIN_LEN = 6
 
+# A vendor's own SDK does not use the catalogue's spelling. Anthropic ships
+# `claude-haiku-4-5-20251001`, the catalogue lists `anthropic/claude-haiku-4.5`;
+# Bedrock ships `anthropic.claude-3-5-sonnet-20241022-v2:0`. Measured against
+# the live catalogue on 2026-08-02, these rules fold 337 ids into 332 forms -
+# only three collide, and every collision is a rolling alias sitting next to
+# its own dated snapshots. So the rule is allowed to run ONLY as a last resort
+# and ONLY where it lands on exactly one model.
+_VENDOR_PREFIX = re.compile(r"^[a-z0-9]+\.")          # bedrock "anthropic."
+_BEDROCK_REV = re.compile(r"-v\d+(?::\d+)?$")          # bedrock "-v2:0"
+_DATE_PLAIN = re.compile(r"[-@]?20\d{6}$")             # "-20251001"
+_DATE_DASHED = re.compile(r"-20\d{2}-\d{2}-\d{2}$")    # "-2024-05-13"
+
+
+def normalize(name: str) -> str:
+    s = name.lower().split("/")[-1]
+    s = _VENDOR_PREFIX.sub("", s)
+    s = _BEDROCK_REV.sub("", s)
+    s = _DATE_DASHED.sub("", s)
+    s = _DATE_PLAIN.sub("", s)
+    return s.replace(".", "-")
+
 SHUTDOWN_SOON_DAYS = 30
 
 # A string that appears in this file and nowhere a user would write it, used
@@ -188,7 +209,22 @@ def bare_index(known: set) -> dict:
     return {t: first[t] for t, n in counts.items() if n == 1}
 
 
-def scan(root: str, known: set, bare: dict) -> dict:
+def norm_index(known: set) -> dict:
+    """Normalised spelling -> the one model it can only mean.
+
+    A form produced by two or more catalogue ids is dropped entirely. Every
+    such collision measured so far is a rolling alias beside its own dated
+    snapshots - `openai/gpt-4o` with `gpt-4o-2024-05-13` and `-2024-08-06` -
+    where picking one would be picking which snapshot the reader meant. The
+    same rule the bare-name index already follows: unambiguous or silent.
+    """
+    seen = {}
+    for mid in known:
+        seen.setdefault(normalize(mid), []).append(mid)
+    return {k: v[0] for k, v in seen.items() if len(v) == 1}
+
+
+def scan(root: str, known: set, bare: dict, norms: dict = None) -> dict:
     """Model ids you actually reference -> the files that reference them.
 
     Skips its own file. The intended way to run this is to curl it into the
@@ -228,6 +264,18 @@ def scan(root: str, known: set, bare: dict) -> dict:
             mid = bare.get(t)
             if mid and mid not in hits:
                 hits.add(mid)
+        # Last resort, and only for tokens the two exact routes both refused.
+        # Running it earlier would COST matches: `gpt-4o` resolves today by its
+        # own name, and normalising it collides with two dated snapshots of
+        # itself, so a normalise-first order would turn a working answer into
+        # an ambiguous one.
+        if norms:
+            for t in CANDIDATE.findall(text) + BARE.findall(text):
+                if len(t) < BARE_MIN_LEN or t in known:
+                    continue
+                mid = norms.get(normalize(t))
+                if mid and mid not in hits:
+                    hits.add(mid)
         for token in hits:
             found.setdefault(token, set()).add(rel)
     return {k: sorted(v) for k, v in found.items()}
@@ -338,7 +386,7 @@ def main() -> int:
         models = {m.get("id"): m for m in raw if isinstance(m, dict) and m.get("id")}
 
     known = set(models) | set(changes)
-    used = scan(args.path, known, bare_index(known))
+    used = scan(args.path, known, bare_index(known), norm_index(known))
 
     results = []
     for mid in sorted(used):
