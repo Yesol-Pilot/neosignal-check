@@ -178,6 +178,22 @@ curl -s https://raw.githubusercontent.com/Yesol-Pilot/neosignal-check/main/neosi
 Two identical digests. If they ever differ, do not run it and please open an
 issue.
 
+## Tests
+
+```
+python test_neosignal_check.py
+```
+
+Standard library, no network, no test framework. 22 checks covering bare-name
+resolution, the ambiguity guard, file discovery including Dockerfiles and
+notebooks, the false-positive guard, verdicts, and the decision to stay silent
+when no replacement qualifies.
+
+Every case is a bug this tool actually shipped or nearly shipped on its first
+day, written as the behaviour that was wrong at the time - a test that only
+asserts what the code happens to do now protects nothing. They were checked by
+deliberately reintroducing two of those bugs and confirming the suite goes red.
+
 ## Data
 
 Both endpoints are free, keyless and CORS-open.
