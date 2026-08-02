@@ -16,7 +16,9 @@ where the data came from.
 
 from __future__ import annotations
 
+import gzip
 import io
+import json
 import os
 import shutil
 import sys
@@ -244,6 +246,38 @@ def main():
     check("and says so honestly instead of claiming a removal",
           "we have no record of it leaving" in why, True)
     check("and invents no replacement", move, None)
+
+    print("\ntransfer")
+    # The catalogue is 178KB in the clear and 14KB gzipped, measured against
+    # the live host. urllib sends no Accept-Encoding and never decompresses, so
+    # every run pulled the full copy. Asking is not receiving, though: a proxy
+    # or a future host may answer in the clear, and assuming otherwise turns a
+    # saving into a crash. The RESPONSE header decides.
+    class FakeResponse:
+        def __init__(self, body, encoding=None):
+            self._b, self.headers = body, {"Content-Encoding": encoding} if encoding else {}
+
+        def read(self):
+            return self._b
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *a):
+            return False
+
+    payload = json.dumps({"models": {"a/b": {}}}).encode("utf-8")
+    real = N.urllib.request.urlopen
+    try:
+        N.urllib.request.urlopen = lambda *a, **k: FakeResponse(
+            gzip.compress(payload), "gzip")
+        check("a gzipped response is decompressed",
+              N.fetch("https://example.invalid/x"), {"models": {"a/b": {}}})
+        N.urllib.request.urlopen = lambda *a, **k: FakeResponse(payload)
+        check("a plain response is not run through gzip",
+              N.fetch("https://example.invalid/x"), {"models": {"a/b": {}}})
+    finally:
+        N.urllib.request.urlopen = real
 
     print("\nformatting")
     check("cheap prices keep three decimals", N.money(0.013), "$0.013")
