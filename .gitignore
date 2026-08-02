@@ -1,0 +1,6 @@
+__pycache__/
+*.pyc
+
+# The tool is meant to be curled into the directory under test, so a stray copy
+# next to the checkout is normal usage rather than something to commit.
+check.py
