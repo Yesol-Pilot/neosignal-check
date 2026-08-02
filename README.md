@@ -36,8 +36,8 @@ entry, including the dated pin a vendor's own SDK takes. Details are in
 ## What it has actually caught
 
 Not a mock. Every row below left the catalogue on the date shown, and **not one
-of them had an end-of-life date published anywhere** - which is exactly why a
-deprecation calendar could not have warned you.
+of them carried an end-of-life date in the catalogue beforehand** - so nothing
+reading that catalogue could have warned you.
 
 <!--evidence:start-->
 | vanished | model | end-of-life date published? | nearest still listed |
@@ -72,25 +72,45 @@ request:
 | vendors that publish one at all | **2 of 58** |
 
 **98.5% of models have no shutdown date anywhere.**
-<!--stat:end--> A deprecation calendar can
-cover the other 1.5% and nothing more - not through any fault of its own, but
-because there is nothing to list. Everything else can only be caught by
-watching the catalogue change, which is what this does.
+<!--stat:end--> That is a statement about the
+catalogue, not about vendors. Some vendors do publish retirement dates on their
+own documentation and the catalogue simply does not carry them — see
+[what this does not see](#what-this-does-not-see). Either way, anything reading
+the catalogue is working from those few dates and nothing else.
 
 ## Why not just use a deprecation calendar
 
-Because a calendar can only list what a vendor announced, and every tracker in
+Because a calendar can only list what somebody announced, and every tracker in
 this space is built that way and says so. `aimodelwatch.dev` states plainly
 that its data is "sourced from official deprecation pages". Those are good
 services and they have a blind spot they cannot close by trying harder:
 
 > **A model that is simply gone one morning was never on anybody's calendar,
-> because nobody ever published a date for it.**
+> because no date for it was ever published.**
 
 This checks against a catalogue that is diffed every single day. Of the model
 removals recorded so far, **every one of them** vanished with no end-of-life
-date ever published. Those are exactly the ones a calendar cannot warn you
-about, and exactly the ones that take down a running product without notice.
+date in the catalogue beforehand. Those are exactly the ones a calendar cannot
+warn you about, and exactly the ones that take down a running product without
+notice.
+
+## What this does not see
+
+The other direction, stated plainly because it is the honest half of the same
+problem: **a vendor can publish a retirement date that the catalogue never
+carries, and this will not see it either.**
+
+Measured on 2026-08-03. Anthropic's own deprecation page lists a retirement
+date of 2026-08-05 for `claude-opus-4.1`. The catalogue carries no date for it,
+or for any of Anthropic's other sixteen models. Pointed at a repository calling
+that model, this reported `no change recorded` and exited 0 — for a model with
+two days left.
+
+So the coverage is: **removals, seen the day they happen, from a daily diff**,
+plus whatever dates the catalogue happens to carry. It is not a substitute for
+your vendor's own deprecation page, and the tool no longer prints anything that
+implies it is. Closing this properly means reading vendor documentation
+directly, which is the next thing being built.
 
 ## In CI
 

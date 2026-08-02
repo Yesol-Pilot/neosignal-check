@@ -455,7 +455,16 @@ def main() -> int:
               % (len(bad), "s" if len(bad) == 1 else "", SITE))
         return 1
     if not args.quiet:
-        print("\nNothing you call is going away.")
+        # NOT "nothing you call is going away". That is a completeness claim,
+        # and this cannot make one. Measured 2026-08-03: Anthropic publishes a
+        # retirement date for claude-opus-4.1 of 2026-08-05 on its own docs,
+        # the catalogue read here carries no date for it, and this printed an
+        # all-clear and exited 0 for a model with two days left. A checker that
+        # oversells its own coverage is the failure this project keeps saying
+        # is worse than no checker.
+        print("\nNo change recorded for these in the catalogue.")
+        print("That is what this can see - a vendor's own deprecation page may")
+        print("carry a date the catalogue does not. %s/gone.html" % SITE)
     return 0
 
 
