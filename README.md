@@ -157,6 +157,27 @@ classifier as the successor to a 550B flagship, and an image model as the
 successor to a coding model. Substitutability is not in the data, so the tool
 speaks only when the two ids visibly sit in the same line.
 
+## Before you run a script off the internet
+
+Fair. Here is everything it does, and how to check rather than take my word.
+
+**333 lines, one file, no dependencies.** Read it - it is shorter than the
+README. It makes **two GET requests**, both to `neosignal-ai.vercel.app`, and
+it opens your files **read-only**. There is no write, no `subprocess`, no
+`eval`, no environment variable read, no telemetry, and nothing is sent
+anywhere.
+
+The copy served from the site and the copy in this repository are the **same
+file**. You do not have to believe that either:
+
+```
+curl -s https://neosignal-ai.vercel.app/check.py | shasum -a 256
+curl -s https://raw.githubusercontent.com/Yesol-Pilot/neosignal-check/main/neosignal_check.py | shasum -a 256
+```
+
+Two identical digests. If they ever differ, do not run it and please open an
+issue.
+
 ## Data
 
 Both endpoints are free, keyless and CORS-open.
