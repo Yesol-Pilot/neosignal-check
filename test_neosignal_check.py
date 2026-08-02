@@ -120,6 +120,32 @@ def main():
         check("reports the file a hit came from",
               found["mistralai/devstral-2512"], ["Dockerfile"])
 
+        # Two holes measured 2026-08-02 against how repositories really name a
+        # model. Directories starting with a dot were ALL skipped, which took
+        # .github with them - so a model pinned in a workflow was invisible in
+        # the one place this tool's README tells people to run it. And ".env"
+        # sat in the extension list without ever matching, because
+        # os.path.splitext(".env") returns (".env", "") - the intent was
+        # recorded and did nothing.
+        write(root, ".github/workflows/ci.yml", "model: openai/gpt-5-codex\n")
+        write(root, ".env", 'DEFAULT_MODEL="openai/gpt-5.1"\n')
+        write(root, ".env.example", 'DEFAULT_MODEL="openai/gpt-5.1"\n')
+        # Still skipped: dropping the blanket dot rule must not pull these in.
+        write(root, ".venv/lib/j.py", 'M = "openai/gpt-5-image"\n')
+        write(root, ".idea/j.py", 'M = "openai/gpt-5-image"\n')
+        env_found = N.scan(root, known, bare)
+        # A subset test, not an exact one: every case here shares a single
+        # temporary tree, so earlier fixtures legitimately contribute paths.
+        paths = {p.replace(os.sep, "/") for p in env_found.get("openai/gpt-5.1", [])}
+        check("reads .env and .env.example",
+              {".env", ".env.example"} <= paths, True)
+        check("walks into .github",
+              ".github/workflows/ci.yml" in
+              [p.replace(os.sep, "/") for p in env_found.get("openai/gpt-5-codex", [])],
+              True)
+        check("still skips .venv and .idea",
+              "openai/gpt-5-image" in env_found, False)
+
         # A file in another encoding used to be read with errors="ignore",
         # which DELETES the undecodable bytes and closes the gap - gluing
         # whatever sat on either side into a token nobody wrote. A scanner
@@ -129,9 +155,14 @@ def main():
                      + "한글".encode("cp949")
                      + b'-codex"\n')
         found2 = N.scan(root, known, bare)
+        # The claim is about the cp949 file specifically: it must not appear,
+        # because the id only exists there as two halves either side of bytes
+        # that do not decode. Other fixtures in this shared tree spell the id
+        # out properly and are supposed to match.
         check("bad bytes do not fabricate an id across the gap",
-              [p.replace(os.sep, "/") for p in found2.get("openai/gpt-5-codex", [])],
-              ["src/app.py"])
+              any(p.replace(os.sep, "/").endswith("cp949.py")
+                  for p in found2.get("openai/gpt-5-codex", [])),
+              False)
     finally:
         shutil.rmtree(root, ignore_errors=True)
 

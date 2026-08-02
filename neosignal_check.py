@@ -88,7 +88,24 @@ READ_NAMES = {"dockerfile", "makefile", "procfile", "justfile", "rakefile",
               "containerfile", "jenkinsfile", "brewfile", "vagrantfile"}
 SKIP_DIRS = {".git", "node_modules", "venv", ".venv", "__pycache__", "dist",
              "build", "target", ".next", ".nuxt", "vendor", "site-packages",
-             ".mypy_cache", ".pytest_cache", ".terraform"}
+             ".mypy_cache", ".pytest_cache", ".terraform",
+             # Named explicitly because the blanket "skip anything starting
+             # with a dot" that used to stand in for this list also skipped
+             # .github - so a model pinned in a workflow was invisible, in the
+             # one directory this tool's own README tells people to run it
+             # from. Skipping is now a decision per directory, not a rule about
+             # the first character.
+             ".idea", ".vscode", ".cache", ".tox", ".gradle", ".svn", ".hg",
+             ".bundle", ".yarn", ".pnpm-store", ".turbo", ".parcel-cache",
+             ".serverless", ".vercel", ".netlify", ".angular", ".svelte-kit"}
+
+# `.env`, `.env.local`, `.env.example`. A prefix test, because
+# os.path.splitext(".env") returns (".env", "") - a leading dot belongs to the
+# NAME, not to an extension - so the ".env" entry in READ_EXT above had never
+# once matched a file actually called .env, and ".env.example" resolved to an
+# extension of ".example". The intent was recorded and silently did nothing.
+# Only the path and the model id are ever reported; contents are never printed.
+ENV_PREFIX = ".env"
 
 # `anthropic/claude-fable-5:batch`, `openai/gpt-5.1-codex`, `z-ai/glm-5.2`
 CANDIDATE = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]*/[A-Za-z0-9][A-Za-z0-9._:-]*")
@@ -144,11 +161,12 @@ def walk(root: str):
         yield root
         return
     for base, dirs, files in os.walk(root):
-        dirs[:] = [d for d in dirs if d not in SKIP_DIRS and not d.startswith(".")]
+        dirs[:] = [d for d in dirs if d.lower() not in SKIP_DIRS]
         for name in files:
             low = name.lower()
             if (os.path.splitext(low)[1] in READ_EXT
                     or low in READ_NAMES
+                    or low.startswith(ENV_PREFIX)
                     or low.split(".")[0] in READ_NAMES):   # Dockerfile.prod
                 yield os.path.join(base, name)
 
