@@ -49,6 +49,22 @@ Where the last column says nothing qualifies, that is the tool declining to
 guess. It names a replacement only when the two ids visibly sit in the same
 vendor line.
 
+## The number that explains why this exists
+
+Measured against the live catalogue, and checkable from
+[`/api/models.json`](https://neosignal-ai.vercel.app/api/models.json) in one
+request:
+
+| | |
+|---|---|
+| models carrying a published end-of-life date | **5 of 337** |
+| vendors that publish one at all | **2 of 58** |
+
+**98.5% of models have no shutdown date anywhere.** A deprecation calendar can
+cover the other 1.5% and nothing more - not through any fault of its own, but
+because there is nothing to list. Everything else can only be caught by
+watching the catalogue change, which is what this does.
+
 ## Why not just use a deprecation calendar
 
 Because a calendar can only list what a vendor announced, and every tracker in
