@@ -121,6 +121,18 @@ def money(v):
     return ("$%.2f" % v) if v >= 0.10 else ("$%.3f" % v)
 
 
+def _per_million(price):
+    """Catalogue prices are per-token strings. Everything shown is per million.
+
+    Returns None rather than 0.0 on anything unparseable, because a missing
+    price rendered as free is worse than a missing price rendered as unknown.
+    """
+    try:
+        return float(price) * 1_000_000
+    except (TypeError, ValueError):
+        return None
+
+
 def fetch(url: str):
     req = urllib.request.Request(url, headers={"User-Agent": "neosignal-check/1.0"})
     with urllib.request.urlopen(req, timeout=30) as r:
@@ -172,8 +184,15 @@ def scan(root: str, known: set, bare: dict) -> dict:
         if os.path.abspath(path) == self_path:
             continue
         try:
-            with io.open(path, encoding="utf-8", errors="ignore") as fh:
-                text = fh.read()
+            # Bytes, then an explicit decode. A repository holds files in
+            # whatever encoding their author used, so a strict read would stop
+            # the scan at the first one - but "ignore" DELETES the undecodable
+            # byte and closes the gap, gluing the text on either side into a
+            # model id nobody wrote. A scanner that invents a finding is worse
+            # than one that skips a file. Decoding with "replace" breaks the
+            # token instead, and model ids are ASCII, so nothing real is lost.
+            with open(path, "rb") as fh:
+                text = fh.read().decode("utf-8", "replace")
         except (OSError, ValueError):
             continue
         # Skip ANY copy of this script, not only the one being executed. The
@@ -208,9 +227,34 @@ def verdict(mid: str, models: dict, changes: dict) -> tuple:
     rows = changes.get(mid) or []
     if mid not in models:
         gone = [r for r in rows if r.get("type") == "MODEL_REMOVED"]
-        when = gone[0].get("date") if gone else None
-        line = ("GONE from the catalogue%s, with no end-of-life date ever published"
-                % (" on " + when if when else ""))
+        # An id can be missing from the catalogue for three different reasons,
+        # and only one of them is a removal we actually watched happen. This
+        # branch used to answer all three with the removal sentence, which
+        # asserted a silent retirement for models we had never seen at all -
+        # including a plain typo - and contradicted our own published record,
+        # where a delisted addressing variant is deliberately NOT counted as a
+        # retirement because every base model stayed listed.
+        base = mid.split(":")[0] if ":" in mid else None
+        if gone:
+            when = gone[0].get("date")
+            line = ("GONE from the catalogue%s, with no end-of-life date ever published"
+                    % (" on " + when if when else ""))
+        elif base and base in models:
+            # The most actionable case the tool has: this call is broken right
+            # now, the fix is one suffix away, and both halves are checkable
+            # against the catalogue in front of us.
+            return ("gone", "the ':%s' variant is no longer listed - the base model is"
+                            % mid.split(":", 1)[1],
+                    {"model": base, "kind": "same_model_base",
+                     "price_per_million_output":
+                         _per_million((models[base] or {}).get("pricing", {}).get("completion")),
+                     "gone_price_per_million_output": None})
+        else:
+            # Say the true thing. We cannot tell a removal that predates our
+            # tracking from a misspelling, and pretending otherwise is the one
+            # failure that would make every other line here worth less.
+            line = ("not in the catalogue, and we have no record of it leaving - "
+                    "check the id, or it predates our tracking")
         # Where to go, when the data supports naming one. It often does not,
         # and the absence of a suggestion is itself information: nothing in
         # that vendor's remaining line-up is a defensible match. Better than
@@ -311,7 +355,13 @@ def main() -> int:
         mark = {"gone": "GONE ", "soon": "SOON ", "moved": "moved", "ok": "ok   "}[r["level"]]
         print("  %s  %-46s %s" % (mark, r["model"], r["detail"]))
         move = r.get("replacement")
-        if move:
+        if move and move.get("kind") == "same_model_base":
+            # Not a migration. The same model answers at a shorter id, so the
+            # "against the $X it cost" comparison would be comparing a price
+            # with itself.
+            print("         drop the suffix: %s at %s per million output"
+                  % (move["model"], money(move.get("price_per_million_output"))))
+        elif move:
             print("         nearest still listed: %s at %s per million output, "
                   "against the %s it cost"
                   % (move["model"], money(move.get("price_per_million_output")),

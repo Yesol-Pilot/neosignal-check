@@ -52,6 +52,12 @@ CHANGES = {
     "openai/gpt-5.2-chat": [{"type": "DEPRECATION_DEADLINE", "days_left": 9,
                              "expires_on": "2026-08-10"}],
     "anthropic/claude-haiku-4.5": [],
+    # An addressing variant that left the catalogue while its base model stayed.
+    # Deliberately carries NO removal record, because the pipeline classifies a
+    # variant delisting as a catalogue change rather than a retirement.
+    "openai/gpt-5.1:batch": [{"type": "PRICING_CHANGE", "date": "2026-07-20"}],
+    # Known to us, absent from the catalogue, never observed leaving.
+    "ghost/never-seen-go": [{"type": "PRICING_CHANGE", "date": "2026-07-11"}],
 }
 
 FAILED = []
@@ -113,6 +119,19 @@ def main():
         check("ignores utils/helpers and read-timeout-30", len(found), 5)
         check("reports the file a hit came from",
               found["mistralai/devstral-2512"], ["Dockerfile"])
+
+        # A file in another encoding used to be read with errors="ignore",
+        # which DELETES the undecodable bytes and closes the gap - gluing
+        # whatever sat on either side into a token nobody wrote. A scanner
+        # that invents a finding is worse than one that misses a file.
+        with open(os.path.join(root, "cp949.py"), "wb") as fh:
+            fh.write(b'A = "openai/gpt-5'
+                     + "한글".encode("cp949")
+                     + b'-codex"\n')
+        found2 = N.scan(root, known, bare)
+        check("bad bytes do not fabricate an id across the gap",
+              [p.replace(os.sep, "/") for p in found2.get("openai/gpt-5-codex", [])],
+              ["src/app.py"])
     finally:
         shutil.rmtree(root, ignore_errors=True)
 
@@ -136,6 +155,29 @@ def main():
 
     lvl, _, _ = N.verdict("anthropic/claude-haiku-4.5", MODELS, CHANGES)
     check("an unchanged model is ok", lvl, "ok")
+
+    # Missing from the catalogue used to mean one sentence: "GONE, with no
+    # end-of-life date ever published". It was applied to ids we had never
+    # watched leave, which asserted a silent retirement that never happened and
+    # contradicted the published record, where a delisted addressing variant is
+    # deliberately NOT counted as a removal because the base model stayed.
+    lvl, why, move = N.verdict("openai/gpt-5.1:batch", MODELS, CHANGES)
+    check("a delisted variant is still a broken call", lvl, "gone")
+    check("a delisted variant is not called a retirement",
+          "no end-of-life date ever published" in why, False)
+    check("a delisted variant points at its own base",
+          (move["model"], move["kind"]), ("openai/gpt-5.1", "same_model_base"))
+    # Same model, same price - there is no before-and-after to compare.
+    check("a delisted variant quotes no former price",
+          move["gone_price_per_million_output"], None)
+    check("the base price is per million, not per token",
+          move["price_per_million_output"], 10.0)
+
+    lvl, why, move = N.verdict("ghost/never-seen-go", MODELS, CHANGES)
+    check("an id we never watched leave is still flagged", lvl, "gone")
+    check("and says so honestly instead of claiming a removal",
+          "we have no record of it leaving" in why, True)
+    check("and invents no replacement", move, None)
 
     print("\nformatting")
     check("cheap prices keep three decimals", N.money(0.013), "$0.013")
