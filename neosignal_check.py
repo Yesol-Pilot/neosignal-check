@@ -34,6 +34,14 @@ you write `gpt-5.2-chat`, and both are matched - a bare name is resolved only
 when it maps to exactly one model in the catalogue, so a suffix two vendors
 share is skipped rather than guessed at.
 
+WHERE IT LOOKS
+Source in most languages, plus the places a model id actually hides: Jupyter
+notebooks, Dockerfiles, Makefiles, Terraform, Gradle, and config of every
+shape. An earlier version filtered on extension alone and found NONE of those
+four - and then printed "either a clean bill or the wrong directory", which
+reads as a pass. A missed model is worse than no tool, because the tool was
+trusted.
+
 HOW IT AVOIDS CRYING WOLF
 It does not guess what a model id looks like. Every candidate token is kept
 only if it matches a real id, so `utils/helpers`, `read-timeout-30` and
@@ -61,7 +69,23 @@ CHANGES_URL = SITE + "/api/changes.json"
 # scanning node_modules finds every model id in the world and none of them yours.
 READ_EXT = {".py", ".js", ".ts", ".tsx", ".jsx", ".mjs", ".cjs", ".go", ".rs",
             ".rb", ".java", ".kt", ".cs", ".php", ".swift", ".sh", ".yaml",
-            ".yml", ".toml", ".json", ".env", ".ini", ".cfg", ".md", ".txt"}
+            ".yml", ".toml", ".json", ".env", ".ini", ".cfg", ".md", ".txt",
+            # Measured 2026-08-02 against the places real projects actually put
+            # a model id: a Jupyter notebook, a Dockerfile, a Terraform
+            # variable and a Makefile. The tool found NONE of the four and
+            # printed "either a clean bill or the wrong directory", which reads
+            # as a pass to someone whose entire model config lives in a
+            # Dockerfile. A missed model is worse than no tool, because the
+            # tool was trusted.
+            ".ipynb", ".tf", ".tfvars", ".hcl", ".sql", ".gradle", ".properties",
+            ".vue", ".svelte", ".astro", ".scala", ".clj", ".ex", ".exs",
+            ".dart", ".lua", ".r", ".jl", ".tpl", ".j2", ".jinja", ".conf",
+            ".xml", ".gitlab-ci.yml", ".tf.json"}
+
+# Files with no extension at all, matched on name. An extension filter cannot
+# see a Dockerfile.
+READ_NAMES = {"dockerfile", "makefile", "procfile", "justfile", "rakefile",
+              "containerfile", "jenkinsfile", "brewfile", "vagrantfile"}
 SKIP_DIRS = {".git", "node_modules", "venv", ".venv", "__pycache__", "dist",
              "build", "target", ".next", ".nuxt", "vendor", "site-packages",
              ".mypy_cache", ".pytest_cache", ".terraform"}
@@ -110,7 +134,10 @@ def walk(root: str):
     for base, dirs, files in os.walk(root):
         dirs[:] = [d for d in dirs if d not in SKIP_DIRS and not d.startswith(".")]
         for name in files:
-            if os.path.splitext(name)[1].lower() in READ_EXT:
+            low = name.lower()
+            if (os.path.splitext(low)[1] in READ_EXT
+                    or low in READ_NAMES
+                    or low.split(".")[0] in READ_NAMES):   # Dockerfile.prod
                 yield os.path.join(base, name)
 
 

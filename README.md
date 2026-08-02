@@ -115,6 +115,18 @@ directly you write `gpt-5.2-chat`, and both are matched. A bare name resolves
 only when it maps to exactly one model in the catalogue, so a suffix two
 vendors share is skipped rather than guessed at.
 
+## Where it looks
+
+Source in most languages, plus the places a model id actually hides: **Jupyter
+notebooks, Dockerfiles, Makefiles, Terraform, Gradle** and config of every
+shape.
+
+That list is not a guess. An earlier version filtered on file extension alone,
+was pointed at a project holding a model id in a notebook, a Dockerfile, a
+Terraform variable and a Makefile, and found **none of the four** - then
+printed "either a clean bill or the wrong directory", which reads as a pass. A
+missed model is worse than no tool, because the tool was trusted.
+
 ## It does not cry wolf
 
 It never guesses what a model id looks like. Every candidate token is kept
