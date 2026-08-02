@@ -1,6 +1,11 @@
 # neosignal-check
 
-Find out which AI models your code calls that are **already gone**.
+Find out which AI models your code calls have been **deprecated or removed** -
+including the ones that were removed with no deprecation notice at all.
+
+Scope is the OpenRouter catalogue, diffed daily. A bare `gpt-5.2-chat` is
+resolved as well as the prefixed `openai/gpt-5.2-chat`, so a project calling a
+vendor SDK directly is covered when it uses the same name.
 
 ```
 curl -sO https://neosignal-ai.vercel.app/check.py
