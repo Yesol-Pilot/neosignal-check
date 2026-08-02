@@ -31,6 +31,7 @@ Not a mock. Every row below left the catalogue on the date shown, and **not one
 of them had an end-of-life date published anywhere** - which is exactly why a
 deprecation calendar could not have warned you.
 
+<!--evidence:start-->
 | vanished | model | end-of-life date published? | nearest still listed |
 |---|---|---|---|
 | 2026-08-01 | `openai/gpt-5.1-chat` | **none, ever** | `openai/gpt-5.1` |
@@ -39,7 +40,8 @@ deprecation calendar could not have warned you.
 | 2026-07-30 | `openai/o3-deep-research` | **none, ever** | _nothing qualifies_ |
 | 2026-07-30 | `openai/gpt-5-codex` | **none, ever** | `openai/gpt-5.1-codex` |
 
-As of 2026-08-02. The live list is always at
+As of 2026-08-02.
+<!--evidence:end--> The live list is always at
 [neosignal-ai.vercel.app/gone.html](https://neosignal-ai.vercel.app/gone.html),
 and the raw records are in
 [`/api/changes.json`](https://neosignal-ai.vercel.app/api/changes.json) if you
@@ -55,12 +57,14 @@ Measured against the live catalogue, and checkable from
 [`/api/models.json`](https://neosignal-ai.vercel.app/api/models.json) in one
 request:
 
+<!--stat:start-->
 | | |
 |---|---|
 | models carrying a published end-of-life date | **5 of 337** |
 | vendors that publish one at all | **2 of 58** |
 
-**98.5% of models have no shutdown date anywhere.** A deprecation calendar can
+**98.5% of models have no shutdown date anywhere.**
+<!--stat:end--> A deprecation calendar can
 cover the other 1.5% and nothing more - not through any fault of its own, but
 because there is nothing to list. Everything else can only be caught by
 watching the catalogue change, which is what this does.
