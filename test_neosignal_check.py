@@ -207,8 +207,13 @@ def main():
     print("\nverdicts")
     lvl, why, move = N.verdict("openai/gpt-5-codex", MODELS, CHANGES)
     check("a removed model is gone", lvl, "gone")
-    check("gone says no date was ever published",
-          "no end-of-life date ever published" in why, True)
+    # The claim is about THIS catalogue, not about every page a vendor keeps.
+    # It used to read "no end-of-life date ever published", which asserted
+    # knowledge of vendor documentation this has never read - and Anthropic's
+    # own page proved it wrong.
+    check("gone says the catalogue held no date, not that nobody published one",
+          ("with no date in it beforehand" in why
+           and "ever published" not in why), True)
     # The replacement is DATA. Folding it into the headline put terminal
     # indentation inside the --json detail field.
     check("replacement is returned separately", move["model"], "openai/gpt-5.1-codex")

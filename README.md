@@ -87,7 +87,7 @@ that its data is "sourced from official deprecation pages". Those are good
 services and they have a blind spot they cannot close by trying harder:
 
 > **A model that is simply gone one morning was never on anybody's calendar,
-> because no date for it was ever published.**
+> because no date for it was ever announced to put there.**
 
 This checks against a catalogue that is diffed every single day. Of the model
 removals recorded so far, **every one of them** vanished with no end-of-life
@@ -164,12 +164,15 @@ jobs:
 
 | exit | meaning |
 |---|---|
-| `0` | nothing you call is going away |
+| `0` | nothing it checked has a change or a date against it |
 | `1` | something is gone, or shuts down inside 30 days |
 | `2` | the check could not run - **never** reported as a pass |
 
-That last row is deliberate. A checker that says "fine" when it could not
-reach its data is worse than no checker.
+Two deliberate wordings there. `2` is never a pass, because a checker that says
+"fine" when it could not reach its data is worse than no checker. And `0` says
+what was checked rather than that you are safe — it used to print "nothing you
+call is going away", which is a claim about everything, and it made that claim
+about a model with two days left.
 
 ## How a spelling is resolved
 

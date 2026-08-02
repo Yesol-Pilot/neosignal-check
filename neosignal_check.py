@@ -8,7 +8,7 @@
 
 Exit codes are the point of this existing at all:
 
-    0   nothing you call is going away
+    0   nothing checked here has a change or a date against it
     1   something you call is GONE, or shuts down inside 30 days
     2   could not check - network, or the service is down
 
@@ -327,7 +327,7 @@ def verdict(mid: str, models: dict, changes: dict) -> tuple:
         base = mid.split(":")[0] if ":" in mid else None
         if gone:
             when = gone[0].get("date")
-            line = ("GONE from the catalogue%s, with no end-of-life date ever published"
+            line = ("GONE from the catalogue%s, with no date in it beforehand"
                     % (" on " + when if when else ""))
         elif base and base in models:
             # The most actionable case the tool has: this call is broken right
