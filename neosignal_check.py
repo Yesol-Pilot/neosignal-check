@@ -383,16 +383,30 @@ def verdict(mid: str, models: dict, changes: dict) -> tuple:
         when = v["expires_on"][:10]
         left = (dt.date(*map(int, when.split("-"))) - dt.date.today()).days
         move = v.get("replacement")
+        # Say so when the claim is old. The collector keeps serving its last
+        # good copy when a vendor page breaks, which is correct - the date does
+        # not become false because our copy aged - but a month-old reading
+        # presented exactly like this morning's is the kind of quiet staleness
+        # this tool exists to catch elsewhere.
+        read_on = (v.get("checked") or "")[:10]
+        stale = ""
+        if read_on:
+            try:
+                age = (dt.date.today() - dt.date(*map(int, read_on.split("-")))).days
+                if age > 7:
+                    stale = " (vendor page last read %d days ago)" % age
+            except ValueError:
+                pass
         if left < 0:
             # Not "gone" - the catalogue still lists it, and it may still
             # answer through an aggregator. Not "ok" either. Saying which of
             # the two sources disagrees is the whole value here.
-            return ("soon", "its vendor retired this on %s - the catalogue still lists it"
-                    % when, move)
+            return ("soon", "its vendor retired this on %s - the catalogue still lists it%s"
+                    % (when, stale), move)
         if left <= SHUTDOWN_SOON_DAYS:
-            return ("soon", "vendor retires this %s - %d day%s left, not in the catalogue"
-                    % (when, left, "" if left == 1 else "s"), move)
-        return ("moved", "vendor retires this %s" % when, move)
+            return ("soon", "vendor retires this %s - %d day%s left, not in the catalogue%s"
+                    % (when, left, "" if left == 1 else "s", stale), move)
+        return ("moved", "vendor retires this %s%s" % (when, stale), move)
 
     eol = (models[mid] or {}).get("expiration_date")
     if eol:

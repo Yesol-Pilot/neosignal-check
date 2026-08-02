@@ -289,6 +289,21 @@ def main():
     # fine, and which of the two sources disagrees is the useful part.
     lvl, why, _ = N.verdict("openai/gpt-5.1", MODELS, vend)
     check("retired upstream but still listed is not called gone", lvl, "soon")
+    # A month-old reading presented exactly like this morning's is the quiet
+    # staleness this tool exists to catch elsewhere. The collector keeps its
+    # last good copy when a vendor page breaks, which is right, so the age has
+    # to be visible.
+    old = dict(vend)
+    old["openai/gpt-5.1"] = [dict(vend["openai/gpt-5.1"][0],
+                                  checked=(dt.date.today() - dt.timedelta(days=40)).isoformat())]
+    _, why_old, _ = N.verdict("openai/gpt-5.1", MODELS, old)
+    check("a stale vendor reading says how old it is",
+          "vendor page last read 40 days ago" in why_old, True)
+    fresh = dict(vend)
+    fresh["openai/gpt-5.1"] = [dict(vend["openai/gpt-5.1"][0],
+                                    checked=dt.date.today().isoformat())]
+    _, why_new, _ = N.verdict("openai/gpt-5.1", MODELS, fresh)
+    check("a fresh one stays quiet about it", "last read" in why_new, False)
     check("and names the disagreement", "the catalogue still lists it" in why, True)
     # An Active row's date column reads "not sooner than X" - a floor on
     # lifetime, not a plan to remove. It must never reach a verdict.
