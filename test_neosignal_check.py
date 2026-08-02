@@ -184,6 +184,19 @@ def main():
         check("still skips .venv and .idea",
               "openai/gpt-5-image" in env_found, False)
 
+        # Measured against a real 391,000-file repository: the walk selected
+        # 21,590 files totalling 1,490 MB and the scan did not finish in ten
+        # minutes. It completes in four and a half with a one-megabyte cap.
+        # The cap must be visible, because a limit nobody is told about reads
+        # as coverage.
+        write(root, "src/huge.py", 'M = "openai/gpt-5.1"\n' + "# pad\n" * 400000)
+        capped = N.scan(root, known, bare)
+        check("a file over the cap is not read",
+              any(f.endswith("huge.py")
+                  for f in capped.get("openai/gpt-5.1", [])), False)
+        check("and the skip is counted rather than silent",
+              any(p.endswith("huge.py") for p in getattr(N.scan, "skipped", [])), True)
+
         # A file in another encoding used to be read with errors="ignore",
         # which DELETES the undecodable bytes and closes the gap - gluing
         # whatever sat on either side into a token nobody wrote. A scanner

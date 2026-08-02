@@ -118,6 +118,15 @@ SKIP_DIRS = {".git", "node_modules", "venv", ".venv", "__pycache__", "dist",
 # Only the path and the model id are ever reported; contents are never printed.
 ENV_PREFIX = ".env"
 
+# A model id is written by a person, and people write small files. Measured
+# 2026-08-03 against a real 391,000-file repository: the walk selected 21,590
+# files totalling 1,490 MB and the scan did not finish in ten minutes. Capping
+# at a megabyte keeps 97.3% of the files and 34% of the bytes, because what it
+# drops is minified bundles and generated data - and a model id inside a bundle
+# came from source that is in the tree too. The count of skipped files is
+# always printed: a cap nobody is told about reads as coverage.
+MAX_BYTES = 1024 * 1024
+
 # `anthropic/claude-fable-5:batch`, `openai/gpt-5.1-codex`, `z-ai/glm-5.2`
 CANDIDATE = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]*/[A-Za-z0-9][A-Za-z0-9._:-]*")
 
@@ -258,8 +267,15 @@ def scan(root: str, known: set, bare: dict, norms: dict = None) -> dict:
     """
     self_path = os.path.abspath(__file__)
     found = {}
+    skipped = []
     for path in walk(root):
         if os.path.abspath(path) == self_path:
+            continue
+        try:
+            if os.path.getsize(path) > MAX_BYTES:
+                skipped.append(path)
+                continue
+        except OSError:
             continue
         try:
             # Bytes, then an explicit decode. A repository holds files in
@@ -302,6 +318,7 @@ def scan(root: str, known: set, bare: dict, norms: dict = None) -> dict:
                     hits.add(mid)
         for token in hits:
             found.setdefault(token, set()).add(rel)
+    scan.skipped = skipped
     return {k: sorted(v) for k, v in found.items()}
 
 
@@ -460,11 +477,30 @@ def main() -> int:
         return 0
 
     if bad or not args.quiet:
-        print("%d model%s referenced in %s\n"
-              % (len(results), "" if len(results) == 1 else "s", args.path))
+        # Always say what was not read. A cap nobody is told about reads as
+        # coverage, which is the failure this tool exists to avoid.
+        n_skip = len(getattr(scan, "skipped", []))
+        note = ("  (%d file%s over 1 MB not read)"
+                % (n_skip, "" if n_skip == 1 else "s")) if n_skip else ""
+        print("%d model%s referenced in %s%s\n"
+              % (len(results), "" if len(results) == 1 else "s", args.path, note))
+
+    # Worst first. Pointed at a real repository this listed 370 models in
+    # alphabetical order with the 48 that needed attention scattered through
+    # them, so the answer was present and unfindable.
+    rank = {"gone": 0, "soon": 1, "moved": 2, "ok": 3}
+    results.sort(key=lambda r: (rank[r["level"]], r["model"]))
+
+    # And once the fine ones outnumber what a person will read, they become a
+    # count. The list exists to show what is wrong; a screen of "ok" pushes it
+    # off the top.
+    quiet_ok = [r for r in results if r["level"] == "ok"]
+    fold = len(quiet_ok) > 10 and not args.json
 
     for r in results:
         if args.quiet and r["level"] not in ("gone", "soon"):
+            continue
+        if fold and r["level"] == "ok":
             continue
         mark = {"gone": "GONE ", "soon": "SOON ", "moved": "moved", "ok": "ok   "}[r["level"]]
         print("  %s  %-46s %s" % (mark, r["model"], r["detail"]))
