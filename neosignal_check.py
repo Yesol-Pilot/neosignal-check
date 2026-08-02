@@ -22,17 +22,26 @@ blind spot it cannot close by trying harder: a model that is simply gone one
 morning was never on anybody's calendar, because nobody published a date for it.
 
 This checks against a catalogue that is diffed every day. Of the model removals
-it has recorded so far, ALL of them vanished with no end-of-life date ever
-published. Those are exactly the ones a calendar cannot warn you about, and
-exactly the ones that break a running product without notice.
+it has recorded so far, ALL of them vanished with no end-of-life date in the
+catalogue beforehand. Those are exactly the ones a calendar cannot warn you
+about, and exactly the ones that break a running product without notice.
+
+AND THE OTHER DIRECTION
+A vendor can publish a retirement date the catalogue never carries. Measured
+2026-08-03: Anthropic publishes 2026-08-05 for claude-opus-4.1 and the
+catalogue holds no date for it or its sixteen siblings, so this reported "no
+change recorded" for a model with two days left. Vendor deprecation pages are
+read directly now and merged into the same change record, which is why a
+warning can say the vendor retires something the catalogue still lists.
 
 NO KEY, NO SIGNUP, NO ACCOUNT. It reads two public JSON files.
 
-IT READS BOTH SPELLINGS
-`openai/gpt-5.2-chat` is the OpenRouter form. If you call a vendor SDK directly
-you write `gpt-5.2-chat`, and both are matched - a bare name is resolved only
-when it maps to exactly one model in the catalogue, so a suffix two vendors
-share is skipped rather than guessed at.
+IT READS THREE SPELLINGS
+`openai/gpt-5.2-chat` is the OpenRouter form; a vendor SDK takes the bare
+`gpt-5.2-chat`; and a vendor's own dated pin looks like
+`claude-haiku-4-5-20251001`. All three resolve, each only where it lands on
+exactly one model, so a suffix two vendors share is skipped rather than
+guessed at.
 
 WHERE IT LOOKS
 Source in most languages, plus the places a model id actually hides: Jupyter
@@ -53,6 +62,7 @@ named exactly after a real model.
 from __future__ import annotations
 
 import argparse
+import datetime as dt
 import gzip
 import io
 import json
@@ -343,6 +353,30 @@ def verdict(mid: str, models: dict, changes: dict) -> tuple:
         move = next((r.get("replacement") for r in gone if r.get("replacement")), None)
         return ("gone", line, move)
 
+    # A vendor's own retirement date, where the catalogue has none. This is
+    # what the catalogue could not tell you: measured 2026-08-03, Anthropic
+    # publishes 2026-08-05 for claude-opus-4.1 and the catalogue carries no
+    # date for it or any of its sixteen siblings, so this returned "ok" for a
+    # model with two days left. Checked before the catalogue's own field
+    # because the vendor is the authority on its own schedule.
+    vend = [r for r in rows if r.get("type") == "VENDOR_DEPRECATION"
+            and r.get("expires_on")]
+    if vend:
+        v = min(vend, key=lambda r: r["expires_on"])
+        when = v["expires_on"][:10]
+        left = (dt.date(*map(int, when.split("-"))) - dt.date.today()).days
+        move = v.get("replacement")
+        if left < 0:
+            # Not "gone" - the catalogue still lists it, and it may still
+            # answer through an aggregator. Not "ok" either. Saying which of
+            # the two sources disagrees is the whole value here.
+            return ("soon", "its vendor retired this on %s - the catalogue still lists it"
+                    % when, move)
+        if left <= SHUTDOWN_SOON_DAYS:
+            return ("soon", "vendor retires this %s - %d day%s left, not in the catalogue"
+                    % (when, left, "" if left == 1 else "s"), move)
+        return ("moved", "vendor retires this %s" % when, move)
+
     eol = (models[mid] or {}).get("expiration_date")
     if eol:
         left = [r.get("days_left") for r in rows
@@ -435,7 +469,12 @@ def main() -> int:
         mark = {"gone": "GONE ", "soon": "SOON ", "moved": "moved", "ok": "ok   "}[r["level"]]
         print("  %s  %-46s %s" % (mark, r["model"], r["detail"]))
         move = r.get("replacement")
-        if move and move.get("kind") == "same_model_base":
+        if move and move.get("kind") == "vendor_stated":
+            # Stated by the vendor on its own deprecation page, not inferred
+            # from id similarity. Labelled as such because the difference is
+            # the whole reason to trust it.
+            print("         the vendor names %s as the replacement" % move["model"])
+        elif move and move.get("kind") == "same_model_base":
             # Not a migration. The same model answers at a shorter id, so the
             # "against the $X it cost" comparison would be comparing a price
             # with itself.

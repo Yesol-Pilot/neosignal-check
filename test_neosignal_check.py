@@ -16,6 +16,7 @@ where the data came from.
 
 from __future__ import annotations
 
+import datetime as dt
 import gzip
 import io
 import json
@@ -246,6 +247,35 @@ def main():
     check("and says so honestly instead of claiming a removal",
           "we have no record of it leaving" in why, True)
     check("and invents no replacement", move, None)
+
+    print("\nvendor-published retirements")
+    # The catalogue carries no end-of-life date for any Anthropic model, and
+    # Anthropic publishes them on its own docs. This returned "ok" for
+    # claude-opus-4.1 two days before its vendor retires it - a clean bill and
+    # exit 0 on the code CI depends on.
+    soon = (dt.date.today() + dt.timedelta(days=2)).isoformat()
+    past = (dt.date.today() - dt.timedelta(days=40)).isoformat()
+    vend = dict(CHANGES)
+    vend["anthropic/claude-haiku-4.5"] = [{
+        "type": "VENDOR_DEPRECATION", "expires_on": soon, "vendor_status": "deprecated",
+        "replacement": {"model": "claude-opus-4-8", "kind": "vendor_stated"}}]
+    vend["openai/gpt-5.1"] = [{
+        "type": "VENDOR_DEPRECATION", "expires_on": past, "vendor_status": "retired"}]
+
+    lvl, why, move = N.verdict("anthropic/claude-haiku-4.5", MODELS, vend)
+    check("a vendor date the catalogue lacks is still a warning", lvl, "soon")
+    check("and it says the date is not the catalogue's", "not in the catalogue" in why, True)
+    check("and carries the replacement the vendor itself named",
+          (move["model"], move["kind"]), ("claude-opus-4-8", "vendor_stated"))
+    # Retired upstream while the catalogue still lists it is neither gone nor
+    # fine, and which of the two sources disagrees is the useful part.
+    lvl, why, _ = N.verdict("openai/gpt-5.1", MODELS, vend)
+    check("retired upstream but still listed is not called gone", lvl, "soon")
+    check("and names the disagreement", "the catalogue still lists it" in why, True)
+    # An Active row's date column reads "not sooner than X" - a floor on
+    # lifetime, not a plan to remove. It must never reach a verdict.
+    check("a model with no vendor row is untouched",
+          N.verdict("openai/gpt-5.1-codex", MODELS, vend)[0], "ok")
 
     print("\ntransfer")
     # The catalogue is 178KB in the clear and 14KB gzipped, measured against
