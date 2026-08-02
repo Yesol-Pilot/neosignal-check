@@ -54,7 +54,7 @@ deprecation calendar could not have warned you.
 | 2026-07-30 | `openai/o3-deep-research` | **none, ever** | _nothing qualifies_ |
 | 2026-07-30 | `openai/gpt-5-codex` | **none, ever** | `openai/gpt-5.1-codex` |
 
-As of 2026-08-02.
+As of 2026-08-03.
 <!--evidence:end--> The live list is always at
 [neosignal-ai.vercel.app/gone.html](https://neosignal-ai.vercel.app/gone.html),
 and the raw records are in
