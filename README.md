@@ -3,24 +3,12 @@
 Find out which AI models your code calls have been **deprecated or removed** -
 including the ones that were removed with no deprecation notice at all.
 
-Scope is the OpenRouter catalogue, diffed daily — but you do not have to be an
-OpenRouter user. Three spellings of the same model resolve to one entry:
-
-| you wrote | resolves to |
-|---|---|
-| `openai/gpt-5.2-chat` | the catalogue id itself |
-| `gpt-5.2-chat` | a bare name, as a vendor SDK takes it |
-| `claude-haiku-4-5-20251001` | `anthropic/claude-haiku-4.5` — the vendor's dated pin |
-
-The last one only fires where the shorter spelling can mean exactly one model.
-`gpt-4o` sits beside `gpt-4o-2024-05-13` and `gpt-4o-2024-08-06`, so a date it
-does not recognise is left alone rather than attached to a guess.
-
 ```
 curl -sO https://neosignal-ai.vercel.app/check.py
 python check.py .
 ```
 
+<!--sample:start-->
 ```
 3 models referenced in .
 
@@ -35,9 +23,15 @@ python check.py .
 
 2 need attention.
 ```
+<!--sample:end-->
 
 No key, no signup, no account, no dependencies. One stdlib Python file that
 reads two public JSON endpoints.
+
+The catalogue it checks against is OpenRouter's, diffed daily — but you do not
+have to be an OpenRouter user. Three spellings of the same model resolve to one
+entry, including the dated pin a vendor's own SDK takes. Details are in
+[how a spelling is resolved](#how-a-spelling-is-resolved).
 
 ## What it has actually caught
 
@@ -144,8 +138,14 @@ reach its data is worse than no checker.
 
 ## How a spelling is resolved
 
-The three forms in the table at the top all reach the same catalogue entry, but
-each is tried in order and each can decline:
+| you wrote | resolves to |
+|---|---|
+| `openai/gpt-5.2-chat` | the catalogue id itself |
+| `gpt-5.2-chat` | a bare name, as a vendor SDK takes it |
+| `claude-haiku-4-5-20251001` | `anthropic/claude-haiku-4.5` — the vendor's dated pin |
+
+All three reach the same entry, but each is tried in order and each can
+decline:
 
 1. the catalogue id, matched exactly;
 2. a bare name, only where it maps to exactly one model — a suffix two vendors
