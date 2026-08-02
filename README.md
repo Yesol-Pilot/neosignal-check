@@ -142,12 +142,22 @@ jobs:
 That last row is deliberate. A checker that says "fine" when it could not
 reach its data is worse than no checker.
 
-## It reads both spellings
+## How a spelling is resolved
 
-`openai/gpt-5.2-chat` is the OpenRouter form. If you call a vendor SDK
-directly you write `gpt-5.2-chat`, and both are matched. A bare name resolves
-only when it maps to exactly one model in the catalogue, so a suffix two
-vendors share is skipped rather than guessed at.
+The three forms in the table at the top all reach the same catalogue entry, but
+each is tried in order and each can decline:
+
+1. the catalogue id, matched exactly;
+2. a bare name, only where it maps to exactly one model — a suffix two vendors
+   share is skipped rather than guessed at;
+3. a vendor's own spelling, only after the first two find nothing. A dated pin
+   sheds its date, a Bedrock id sheds its prefix and revision, and dots fold to
+   dashes. Where the shortened form could mean more than one model it is
+   dropped, not guessed.
+
+The order matters: `gpt-4o` resolves on its own name at step 1, and shortening
+it would collide with two dated snapshots of itself. Trying step 3 first would
+turn a working answer into an ambiguous one.
 
 ## Where it looks
 
@@ -179,11 +189,12 @@ speaks only when the two ids visibly sit in the same line.
 
 Fair. Here is everything it does, and how to check rather than take my word.
 
-**333 lines, one file, no dependencies.** Read it - it is shorter than the
-README. It makes **two GET requests**, both to `neosignal-ai.vercel.app`, and
-it opens your files **read-only**. There is no write, no `subprocess`, no
-`eval`, no environment variable read, no telemetry, and nothing is sent
-anywhere.
+<!--size:start-->
+**463 lines, one file, no dependencies.**
+<!--size:end--> Read it. It makes **two GET requests**, both to
+`neosignal-ai.vercel.app`, and it opens your files **read-only**. There is no
+write, no `subprocess`, no `eval`, no environment variable read, no telemetry,
+and nothing is sent anywhere.
 
 The copy served from the site and the copy in this repository are the **same
 file**. You do not have to believe that either:
