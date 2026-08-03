@@ -125,6 +125,9 @@ This diffs the live catalogue every single day, so a disappearance is recorded
 whether or not anyone announced it.
 
 <!--calendar:start-->
+Of the **5 removals** recorded so far, **2** had a date on the vendor's own deprecation page before they vanished and **3** did not. A calendar built on vendor docs catches the 2. Nothing but a daily diff of the catalogue catches the other 3 - the kind that takes a running product down without notice.
+
+None of the 5 carried an end-of-life date in the **catalogue** beforehand - the field anything reading only the catalogue would have to rely on. Each removal in [`/api/changes.json`](https://neosignal-ai.vercel.app/api/changes.json) carries `vendor_announced`, and the announced ones carry the date and the vendor page it was read from, so this is checkable rather than assertable.
 <!--calendar:end-->
 
 ## It reads the vendor's own deprecation page too
@@ -260,7 +263,7 @@ speaks only when the two ids visibly sit in the same line.
 Fair. Here is everything it does, and how to check rather than take my word.
 
 <!--size:start-->
-**567 lines, one file, no dependencies.**
+**605 lines, one file, no dependencies.**
 <!--size:end--> Read it. It makes **two GET requests**, both to
 `neosignal-ai.vercel.app`, and it opens your files **read-only**. There is no
 write, no `subprocess`, no `eval`, no environment variable read, no telemetry,
