@@ -111,19 +111,21 @@ this reads
 
 ## Why not just use a deprecation calendar
 
-Because a calendar can only list what somebody announced, and every tracker in
-this space is built that way and says so. `aimodelwatch.dev` states plainly
-that its data is "sourced from official deprecation pages". Those are good
-services and they have a blind spot they cannot close by trying harder:
+A calendar lists what somebody announced. `aimodelwatch.dev`, read 2026-08-03,
+describes its data as "Sourced from official docs, refreshed daily" across 204
+models and 12 providers. That is a good service and the approach is sound for
+everything a vendor writes down.
 
-> **A model that is simply gone one morning was never on anybody's calendar,
-> because no date for it was ever announced to put there.**
+The gap is what nobody wrote down:
 
-This checks against a catalogue that is diffed every single day. Of the model
-removals recorded so far, **every one of them** vanished with no end-of-life
-date in the catalogue beforehand. Those are exactly the ones a calendar cannot
-warn you about, and exactly the ones that take down a running product without
-notice.
+> **A model that is simply gone one morning, with nothing published anywhere
+> about it, cannot be on a calendar - there was never a date to put there.**
+
+This diffs the live catalogue every single day, so a disappearance is recorded
+whether or not anyone announced it.
+
+<!--calendar:start-->
+<!--calendar:end-->
 
 ## It reads the vendor's own deprecation page too
 
