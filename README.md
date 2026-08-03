@@ -18,7 +18,7 @@ python check.py .
          nearest still listed: openai/gpt-5.1 at $10.00 per million
          output, against the $10.00 it cost
          src/agent.ts
-  SOON   openai/gpt-5.2-chat          shuts down 2026-08-10 - 7 days left
+  SOON   openai/gpt-5.2-chat          shuts down 2026-08-10 - 6 days left
          src/agent.ts
 
 2 need attention.
@@ -48,7 +48,7 @@ reading that catalogue could have warned you.
 | 2026-07-30 | `openai/o3-deep-research` | **none** | _nothing qualifies_ |
 | 2026-07-30 | `openai/gpt-5-codex` | **none** | `openai/gpt-5.1-codex` |
 
-As of 2026-08-03.
+As of 2026-08-04.
 <!--evidence:end--> The live list is always at
 [neosignal-ai.vercel.app/gone.html](https://neosignal-ai.vercel.app/gone.html),
 and the raw records are in
@@ -68,22 +68,22 @@ vendor pages, so it cannot tell you the model is retired. This reads both, every
 day, and the overlap is where these live.
 
 <!--stale:start-->
-**13 models are still listed after the vendor retired them.** The oldest by 689 days.
+**13 models are still listed after the vendor retired them.** The oldest by 690 days.
 
 | model | vendor's retirement date | days still listed since |
 |---|---|---|
-| `openai/gpt-3.5-turbo-0613` | 2024-09-13 | **689** |
-| `mistralai/mistral-large-2407` | 2025-03-30 | **491** |
-| `google/gemini-2.5-pro-preview-05-06` | 2025-12-02 | **244** |
-| `anthropic/claude-3-haiku` | 2026-04-20 | **105** |
-| `google/gemini-3.1-flash-lite-preview` | 2026-05-25 | **70** |
-| `anthropic/claude-opus-4` | 2026-06-15 | **49** |
+| `openai/gpt-3.5-turbo-0613` | 2024-09-13 | **690** |
+| `mistralai/mistral-large-2407` | 2025-03-30 | **492** |
+| `google/gemini-2.5-pro-preview-05-06` | 2025-12-02 | **245** |
+| `anthropic/claude-3-haiku` | 2026-04-20 | **106** |
+| `google/gemini-3.1-flash-lite-preview` | 2026-05-25 | **71** |
+| `anthropic/claude-opus-4` | 2026-06-15 | **50** |
 
 and 7 more.
 
 2 of these are still served on a platform whose own end-of-life is later - AWS Bedrock, in every current case - so for those the catalogue may be routing somewhere the model has not retired. The catalogue does not name the provider behind an entry, so that cannot be settled from it, and they are counted above rather than quietly dropped. The other 11 have no such route that we can see.
 
-As of 2026-08-03.
+As of 2026-08-04.
 <!--stale:end-->
 
 Every row is checkable in one request from
@@ -94,6 +94,16 @@ claim rests on.
 ## Announced, then un-announced
 
 <!--withdrawn:start-->
+**3 retirement dates have been withdrawn** - published by the vendor, then dropped from its page while the model stayed listed and callable.
+
+| model | date it used to carry | noticed |
+|---|---|---|
+| `google/gemini-2.5-pro` | 2026-10-16 | 2026-08-03 |
+| `google/gemini-2.5-flash-lite` | 2026-10-16 | 2026-08-03 |
+| `google/gemini-2.5-flash` | 2026-10-16 | 2026-08-03 |
+
+
+A deprecation calendar cannot show you this: it renders the vendor's page as it reads today, and today is the day that page stopped saying so. Also in [`/api/changes.json`](https://neosignal-ai.vercel.app/api/changes.json) under `vendor_date_withdrawn`.
 <!--withdrawn:end-->
 
 ## The number that explains why this exists
@@ -154,7 +164,7 @@ record. Both sources, one answer:
 | | |
 |---|---|
 | models with a date in the catalogue | **5** |
-| models with a date from their vendor | **23** |
+| models with a date from their vendor | **20** |
 <!--both:end-->
 
 Every vendor-dated row carries the vendor id and page it came from, so any
@@ -280,7 +290,7 @@ speaks only when the two ids visibly sit in the same line.
 Fair. Here is everything it does, and how to check rather than take my word.
 
 <!--size:start-->
-**712 lines, one file, no dependencies.**
+**762 lines, one file, no dependencies.**
 <!--size:end--> Read it. It makes **two GET requests**, both to
 `neosignal-ai.vercel.app`, and it opens your files **read-only**. There is no
 write, no `subprocess`, no `eval`, no environment variable read, no telemetry,
