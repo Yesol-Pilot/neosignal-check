@@ -35,6 +35,14 @@ have to be an OpenRouter user. Three spellings of the same model resolve to one
 entry, including the dated pin a vendor's own SDK takes. Details are in
 [how a spelling is resolved](#how-a-spelling-is-resolved).
 
+Route prefixes work too, so LiteLLM and anything shaped like it are already
+covered — `azure/gpt-4o`, `bedrock/anthropic.claude-3-haiku-20240307-v1:0`,
+`vertex_ai/gemini-2.5-pro` and
+`together_ai/meta-llama/llama-3.3-70b-instruct` all land on the right entry.
+And if you call through Bedrock, the spelling is what tells this tool that
+**your** deadline is Bedrock's rather than the vendor's — those are months
+apart on some models.
+
 ## What it has actually caught
 
 Not a mock. Every row below left the catalogue on the date shown, and **not one

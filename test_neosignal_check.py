@@ -541,6 +541,34 @@ def main():
     N.verdict("anthropic/claude-3-haiku", mods, ch, None, plat, plain)
     check("a vendor verdict fills nothing", plain, {})
 
+    print("\nprovider-prefixed spellings")
+    # LiteLLM and friends put the ROUTE in front of the model - azure/gpt-4o,
+    # bedrock/anthropic.claude-3-haiku-20240307-v1:0, vertex_ai/gemini-2.5-pro,
+    # together_ai/meta-llama/llama-3.3-70b-instruct. Measured 2026-08-04: all
+    # four already resolve, through the bare-name and normalise routes rather
+    # than by anything that knows what a provider prefix is.
+    #
+    # Pinned because nothing was protecting it. Asking the resolvers directly
+    # says azure/gpt-4o MISSES - the whole string is not a bare name - and that
+    # is the wrong probe: the scanner extracts `gpt-4o` from inside it. Testing
+    # at the wrong layer is how a working feature gets "fixed".
+    lite = {"openai/gpt-4o", "anthropic/claude-3-haiku",
+            "google/gemini-2.5-pro", "meta-llama/llama-3.3-70b-instruct"}
+    tmp = tempfile.mkdtemp()
+    try:
+        write(tmp, "app.py",
+              'A = "azure/gpt-4o"\n'
+              'B = "bedrock/anthropic.claude-3-haiku-20240307-v1:0"\n'
+              'C = "vertex_ai/gemini-2.5-pro"\n'
+              'D = "together_ai/meta-llama/llama-3.3-70b-instruct"\n')
+        seen = N.scan(tmp, lite, N.bare_index(lite), N.norm_index(lite))
+    finally:
+        shutil.rmtree(tmp, ignore_errors=True)
+    for want in sorted(lite):
+        check("litellm-style route prefix resolves %s" % want.split("/")[-1],
+              want in seen, True)
+    check("and the prefix invents nothing extra", len(seen), 4)
+
     print("\na date the vendor took back")
     # Measured 2026-08-04: Google carried 2026-10-16 for gemini-2.5-pro,
     # gemini-2.5-flash and gemini-2.5-flash-lite, and its page now carries
