@@ -273,11 +273,19 @@ Both endpoints are free, keyless and CORS-open.
 Full history of everything that disappeared:
 [neosignal-ai.vercel.app/gone.html](https://neosignal-ai.vercel.app/gone.html)
 
-## Caveat worth stating
+## Caveats worth stating
 
-This watches the OpenRouter catalogue. A model can leave an aggregator without
-its vendor retiring it, so a removal here is evidence about that catalogue and
-not proof the vendor killed the model. The tool says so in its own output, and
-you should confirm with your provider before you migrate.
+Two sources, and they can prove different things.
+
+**A removal is evidence about the catalogue, not proof the vendor killed the
+model.** A model can leave an aggregator while the vendor still serves it. The
+tool words its own output that way — "gone from the catalogue, with no date in
+it beforehand" — and you should confirm with your provider before you migrate.
+
+**A retirement date is the vendor's own statement, which is stronger — but our
+copy of it has an age.** The pages are read daily; if one breaks, the last good
+read keeps being served rather than the claim disappearing, and the tool
+appends how old the reading is once it passes a week. A date that has not been
+re-read in a month is still probably right, and you should still check it.
 
 MIT licensed. Built by [Neo Genesis](https://neosignal-ai.vercel.app).
