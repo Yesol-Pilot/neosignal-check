@@ -91,6 +91,11 @@ Every row is checkable in one request from
 carries the vendor id the date was read from, so you can see which spelling the
 claim rests on.
 
+## Announced, then un-announced
+
+<!--withdrawn:start-->
+<!--withdrawn:end-->
+
 ## The number that explains why this exists
 
 Measured against the live catalogue, and checkable from
