@@ -342,6 +342,44 @@ def main():
     finally:
         N.urllib.request.urlopen = real
 
+    print("\nthe exit-2 contract")
+    # "could not check" must never leave as a pass. Exercised through main()
+    # rather than fetch(), because the exit code is the thing being promised
+    # and it is decided there.
+    import argparse
+
+    def run_with(fetch_impl):
+        # stderr as well as stdout: the tool writes the "not a pass" line to
+        # stderr, so capturing only stdout would have shown an empty string
+        # and made this test look like a defect in the tool.
+        real_fetch, real_argv = N.fetch, sys.argv
+        out = io.StringIO()
+        real_out, real_err = sys.stdout, sys.stderr
+        try:
+            N.fetch = fetch_impl
+            sys.argv = ["neosignal_check.py", "."]
+            sys.stdout = sys.stderr = out
+            return N.main(), out.getvalue()
+        finally:
+            N.fetch, sys.argv = real_fetch, real_argv
+            sys.stdout, sys.stderr = real_out, real_err
+
+    def unreachable(url):
+        raise N.urllib.error.URLError("no route")
+
+    def not_json(url):
+        raise ValueError("Expecting value: line 1 column 1 (char 0)")
+
+    code, said = run_with(unreachable)
+    check("an unreachable host exits 2, not 0", code, 2)
+    check("and says nothing was checked", "NOT a pass" in said, True)
+
+    # HTTP 200 with a body that is not JSON - a CDN error page, a truncated
+    # response. The dangerous one, because the request succeeded.
+    code, said = run_with(not_json)
+    check("a 200 with an unusable body also exits 2", code, 2)
+    check("and says so too", "NOT a pass" in said, True)
+
     print("\nformatting")
     check("cheap prices keep three decimals", N.money(0.013), "$0.013")
     check("normal prices keep two", N.money(10.0), "$10.00")
