@@ -15,16 +15,21 @@ Exit codes are the point of this existing at all:
 so it drops into CI as a step that fails a build before a model does.
 
 WHY THIS EXISTS
-A deprecation calendar can only list what a vendor announced. Every tracker in
-this space is built that way and says so - aimodelwatch.dev states its data is
-"sourced from official deprecation pages". That is a real service and it has a
-blind spot it cannot close by trying harder: a model that is simply gone one
-morning was never on anybody's calendar, because nobody published a date for it.
+A deprecation calendar can only list what somebody announced. aimodelwatch.dev,
+read 2026-08-03, describes its data as "Sourced from official docs, refreshed
+daily" - a good service, and sound for everything a vendor writes down. The gap
+is what nobody wrote down: a model that is simply gone one morning, with nothing
+published anywhere, was never on a calendar because there was no date to put
+there.
 
-This checks against a catalogue that is diffed every day. Of the model removals
-it has recorded so far, ALL of them vanished with no end-of-life date in the
-catalogue beforehand. Those are exactly the ones a calendar cannot warn you
-about, and exactly the ones that break a running product without notice.
+This checks against a catalogue that is diffed every day. Of the removals it has
+recorded, two were announced by their vendor beforehand and three were not; none
+of them carried an end-of-life date in the CATALOGUE, which is the field
+anything reading only the catalogue has to rely on.
+
+(The quote above was wrong here until 2026-08-03. It read "sourced from official
+deprecation pages" - narrower than what they actually say, and the narrower
+version happened to be the one that made this paragraph's argument work.)
 
 AND THE OTHER DIRECTION
 A vendor can publish a retirement date the catalogue never carries. Measured
@@ -42,6 +47,16 @@ IT READS THREE SPELLINGS
 `claude-haiku-4-5-20251001`. All three resolve, each only where it lands on
 exactly one model, so a suffix two vendors share is skipped rather than
 guessed at.
+
+AND THE SPELLING SAYS WHICH DEADLINE IS YOURS
+A retirement date belongs to a model ON A PLATFORM. Anthropic retired
+claude-3-haiku on 2026-04-20; AWS Bedrock serves it until 2026-09-10. If your
+code says `anthropic.claude-3-haiku-20240307-v1:0` you are on Bedrock and
+September is your date; if it says `claude-3-haiku-20240307` you lost it in
+April. Both spellings resolve to one catalogue id, so until 2026-08-03 this
+gave every caller the vendor's date - wrong by 143 days for the Bedrock one,
+and wrong in the direction where nothing breaks when the tool said it would.
+A tree that spells it both ways gets the vendor date and no guess.
 
 WHERE IT LOOKS
 Source in most languages, plus the places a model id actually hides: Jupyter
@@ -165,6 +180,30 @@ BARE_MIN_LEN = 5
 # only three collide, and every collision is a rolling alias sitting next to
 # its own dated snapshots. So the rule is allowed to run ONLY as a last resort
 # and ONLY where it lands on exactly one model.
+# A spelling says WHERE the caller is calling from, and that decides which
+# deadline is theirs. `anthropic.claude-3-haiku-20240307-v1:0` is a Bedrock id
+# and nothing else; `claude-3-haiku-20240307` is Anthropic's own SDK. Both
+# resolve to the same catalogue entry, and the normalisation that makes that
+# work is exactly the step that throws the platform away.
+#
+# It matters by months. Anthropic retired claude-3-haiku on 2026-04-20; AWS
+# Bedrock serves it until 2026-09-10. Before this, a repository calling it
+# through Bedrock was told its model died in April - true about the vendor,
+# wrong about the reader's deadline by 143 days, and wrong in the direction
+# that makes someone distrust the tool when nothing breaks in April.
+PLATFORM_SPELLING = [
+    ("AWS Bedrock", re.compile(r"^[a-z0-9]+\.[a-z0-9][a-z0-9.\-]*-v\d+(?::\d+)?$")),
+]
+
+
+def platform_of(token: str):
+    """The platform a spelling belongs to, or None for a vendor-native id."""
+    for name, rx in PLATFORM_SPELLING:
+        if rx.match(token.lower()):
+            return name
+    return None
+
+
 _VENDOR_PREFIX = re.compile(r"^[a-z0-9]+\.")          # bedrock "anthropic."
 _BEDROCK_REV = re.compile(r"-v\d+(?::\d+)?$")          # bedrock "-v2:0"
 _DATE_PLAIN = re.compile(r"[-@]?20\d{6}$")             # "-20251001"
@@ -306,6 +345,7 @@ def scan(root: str, known: set, bare: dict, norms: dict = None) -> dict:
     self_path = os.path.abspath(__file__)
     found = {}
     skipped = []
+    plats = {}
     for path in walk(root):
         if os.path.abspath(path) == self_path:
             continue
@@ -334,7 +374,11 @@ def scan(root: str, known: set, bare: dict, norms: dict = None) -> dict:
         if SELF_MARK in text:
             continue
         rel = os.path.relpath(path, root) if os.path.isdir(root) else path
-        hits = {t for t in CANDIDATE.findall(text) if t in known}
+        # (token, model) pairs, not just models: the SPELLING is what says
+        # which platform the caller is on, and it is discarded a few lines
+        # later by the very normalisation that makes the match work.
+        pairs = [(t, t) for t in CANDIDATE.findall(text) if t in known]
+        hits = {t for t, _ in pairs}
         # Only look for bare names where the prefixed form did not already
         # match on this line's id, so a file using the full form is not
         # reported twice under two spellings.
@@ -342,6 +386,7 @@ def scan(root: str, known: set, bare: dict, norms: dict = None) -> dict:
             mid = bare.get(t)
             if mid and mid not in hits:
                 hits.add(mid)
+                pairs.append((t, mid))
         # Last resort, and only for tokens the two exact routes both refused.
         # Running it earlier would COST matches: `gpt-4o` resolves today by its
         # own name, and normalising it collides with two dated snapshots of
@@ -354,13 +399,29 @@ def scan(root: str, known: set, bare: dict, norms: dict = None) -> dict:
                 mid = norms.get(normalize(t))
                 if mid and mid not in hits:
                     hits.add(mid)
+                    pairs.append((t, mid))
+        # Record the platform every spelling belongs to, INCLUDING None for a
+        # vendor-native one. Tracking only the platforms was a real defect: a
+        # tree calling a model both ways produced the set {"AWS Bedrock"}, so
+        # the "exactly one platform" guard passed and every file was told the
+        # Bedrock date - including the one calling Anthropic directly, whose
+        # deadline was five months earlier. None has to be in the set for the
+        # guard to see the disagreement.
+        for token, mid in pairs:
+            plats.setdefault(mid, set()).add(platform_of(token))
         for token in hits:
             found.setdefault(token, set()).add(rel)
     scan.skipped = skipped
+    # Only models spelled ONE way, and that way a platform. Anything else -
+    # mixed spellings, or a vendor-native id - resolves to no platform, and
+    # verdict() falls back to the vendor date rather than guessing.
+    scan.platforms = {k: sorted(v) for k, v in plats.items()
+                      if len(v) == 1 and None not in v}
     return {k: sorted(v) for k, v in found.items()}
 
 
-def verdict(mid: str, models: dict, changes: dict) -> tuple:
+def verdict(mid: str, models: dict, changes: dict,
+            on: list = None, plat: dict = None) -> tuple:
     """(level, headline, replacement) for one model.
 
     level: gone | soon | moved | ok. The replacement is returned as DATA rather
@@ -414,6 +475,35 @@ def verdict(mid: str, models: dict, changes: dict) -> tuple:
     # date for it or any of its sixteen siblings, so this returned "ok" for a
     # model with two days left. Checked before the catalogue's own field
     # because the vendor is the authority on its own schedule.
+    # If the caller's own spelling says which platform they are on, that
+    # platform's date is theirs and the vendor's is not. Only when exactly one
+    # platform was seen for this model: a tree calling it both ways has two
+    # real deadlines and picking either would be inventing an answer.
+    if on and len(on) == 1 and plat:
+        for row in plat.get(mid) or []:
+            if row.get("platform") != on[0] or not row.get("end_of_life"):
+                continue
+            when = row["end_of_life"][:10]
+            left = (dt.date(*map(int, when.split("-"))) - dt.date.today()).days
+            vend_when = min((r["expires_on"][:10] for r in rows
+                             if r.get("type") == "VENDOR_DEPRECATION"
+                             and r.get("expires_on")), default=None)
+            # Say the vendor's date too where it differs, or the reader sees a
+            # number here and a different one on the model page and has no way
+            # to tell which of us is wrong. Neither is.
+            also = ""
+            if vend_when and vend_when != when:
+                also = (" (its vendor's own date is %s; you are reading the %s "
+                        "one because that is how your code calls it)"
+                        % (vend_when, on[0]))
+            if left < 0:
+                return ("gone", "%s stopped serving this on %s%s"
+                        % (on[0], when, also), None)
+            if left <= SHUTDOWN_SOON_DAYS:
+                return ("soon", "%s stops serving this %s - %d day%s left%s"
+                        % (on[0], when, left, "" if left == 1 else "s", also), None)
+            return ("moved", "%s stops serving this %s%s" % (on[0], when, also), None)
+
     vend = [r for r in rows if r.get("type") == "VENDOR_DEPRECATION"
             and r.get("expires_on")]
     if vend:
@@ -488,7 +578,11 @@ def main() -> int:
     # worse than not running at all.
     try:
         raw = fetch(MODELS_URL).get("models") or {}
-        changes = fetch(CHANGES_URL).get("changes") or {}
+        payload = fetch(CHANGES_URL)
+        changes = payload.get("changes") or {}
+        # Platform end-of-life, published under its own key precisely so a
+        # reader has to opt into it rather than have it merged in.
+        plat = payload.get("platform_lifecycles") or {}
     except (urllib.error.URLError, urllib.error.HTTPError, ValueError, OSError) as exc:
         sys.stderr.write("could not reach %s (%s)\n"
                          "nothing was checked - this is NOT a pass\n" % (SITE, exc))
@@ -507,7 +601,8 @@ def main() -> int:
 
     results = []
     for mid in sorted(used):
-        level, why, move = verdict(mid, models, changes)
+        level, why, move = verdict(mid, models, changes,
+                                   getattr(scan, "platforms", {}).get(mid), plat)
         row = {"model": mid, "level": level, "detail": why, "files": used[mid]}
         if move:
             row["replacement"] = move
@@ -588,6 +683,18 @@ def main() -> int:
               % (len(bad), "s" if len(bad) == 1 else "", SITE))
         return 1
     if not args.quiet:
+        dated = [r for r in results if r["level"] == "moved"]
+        if dated:
+            # A `moved` row already printed a real retirement date. Following
+            # it with "no change recorded" reads as the tool contradicting the
+            # line above it, and the reader has to decide which half to trust.
+            # Both are true - the date is real and none of them is inside the
+            # next 30 days - so say that instead.
+            print("\n%d of these ha%s a date against %s, none inside %d days."
+                  % (len(dated), "s" if len(dated) == 1 else "ve",
+                     "it" if len(dated) == 1 else "them", SHUTDOWN_SOON_DAYS))
+            print("Nothing here is urgent today. %s/gone.html" % SITE)
+            return 0
         # NOT "nothing you call is going away". That is a completeness claim,
         # and this cannot make one. Measured 2026-08-03: Anthropic publishes a
         # retirement date for claude-opus-4.1 of 2026-08-05 on its own docs,

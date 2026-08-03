@@ -446,6 +446,64 @@ def main():
           resolve("utf-8"), None)
     check("a version string is not a model", resolve("node-20"), None)
 
+    print("\nthe platform a spelling belongs to")
+    # A retirement date belongs to a model ON A PLATFORM. Anthropic retired
+    # claude-3-haiku on 2026-04-20; AWS Bedrock serves it to 2026-09-10. Both
+    # spellings resolve to one catalogue id, and the normalisation that makes
+    # that work is what throws away the only signal that says which date is
+    # the reader's.
+    check("a bedrock id is recognised as bedrock",
+          N.platform_of("anthropic.claude-3-haiku-20240307-v1:0"), "AWS Bedrock")
+    check("a vendor-native dated pin is not a platform",
+          N.platform_of("claude-3-haiku-20240307"), None)
+    check("an openrouter id is not a platform",
+          N.platform_of("anthropic/claude-3-haiku"), None)
+    check("a bare name is not a platform", N.platform_of("gpt-4"), None)
+
+    plat = {"anthropic/claude-3-haiku": [
+        {"platform": "AWS Bedrock", "end_of_life": "2099-09-10",
+         "source": "https://example.invalid/lifecycle"}]}
+    ch = {"anthropic/claude-3-haiku": [
+        {"type": "VENDOR_DEPRECATION", "expires_on": "2024-04-20"}]}
+    mods = {"anthropic/claude-3-haiku": {}}
+
+    lvl, why, _ = N.verdict("anthropic/claude-3-haiku", mods, ch,
+                            ["AWS Bedrock"], plat)
+    check("a bedrock caller is given the bedrock date", "2099-09-10" in why, True)
+    check("and told the vendor's date differs", "2024-04-20" in why, True)
+    check("which is not an alarm, because it is far off", lvl, "moved")
+
+    lvl, why, _ = N.verdict("anthropic/claude-3-haiku", mods, ch, None, plat)
+    check("a vendor-native caller keeps the vendor date", "2024-04-20" in why, True)
+    check("and is warned, because that date has passed", lvl, "soon")
+
+    # The guard that took two attempts. Tracking only the platforms seen gave
+    # {"AWS Bedrock"} for a tree calling a model BOTH ways, so "exactly one
+    # platform" passed and the file calling Anthropic directly was told a
+    # deadline five months later than its own. None has to be in the set.
+    tmp = tempfile.mkdtemp()
+    try:
+        write(tmp, "aws/a.js", 'modelId: "anthropic.claude-3-haiku-20240307-v1:0"\n')
+        write(tmp, "direct/b.py", 'model = "claude-3-haiku-20240307"\n')
+        real = {"anthropic/claude-3-haiku"}
+        N.scan(tmp, real, N.bare_index(real), N.norm_index(real))
+        mixed = getattr(N.scan, "platforms", {})
+    finally:
+        shutil.rmtree(tmp, ignore_errors=True)
+    check("a tree spelling it both ways claims no platform",
+          mixed.get("anthropic/claude-3-haiku"), None)
+
+    tmp = tempfile.mkdtemp()
+    try:
+        write(tmp, "aws/a.js", 'modelId: "anthropic.claude-3-haiku-20240307-v1:0"\n')
+        real = {"anthropic/claude-3-haiku"}
+        N.scan(tmp, real, N.bare_index(real), N.norm_index(real))
+        only = getattr(N.scan, "platforms", {})
+    finally:
+        shutil.rmtree(tmp, ignore_errors=True)
+    check("a tree spelling it one way claims that platform",
+          only.get("anthropic/claude-3-haiku"), ["AWS Bedrock"])
+
     print("\nformatting")
     check("cheap prices keep three decimals", N.money(0.013), "$0.013")
     check("normal prices keep two", N.money(10.0), "$10.00")
