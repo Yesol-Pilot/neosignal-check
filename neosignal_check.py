@@ -68,10 +68,15 @@ trusted.
 
 HOW IT AVOIDS CRYING WOLF
 It does not guess what a model id looks like. Every candidate token is kept
-only if it matches a real id, so `utils/helpers`, `read-timeout-30` and
-`on-click-handler` cannot survive. A bare name must also be at least six
-characters and contain a digit. A false positive would require a variable
-named exactly after a real model.
+only if it resolves to exactly one real id, so `utils/helpers`,
+`read-timeout-30` and `on-click-handler` cannot survive. A bare name must also
+contain a digit, a hyphen, and at least five characters. A false positive would
+require a variable named exactly after a real model.
+
+(This said six characters until 2026-08-03, when six was measured to exclude
+`gpt-4` and `gpt-5` - the most common way anyone names a model - and a file
+containing nothing else got a clean bill. The uniqueness requirement is what
+does the work a length rule was credited with.)
 """
 
 from __future__ import annotations
@@ -421,7 +426,7 @@ def scan(root: str, known: set, bare: dict, norms: dict = None) -> dict:
 
 
 def verdict(mid: str, models: dict, changes: dict,
-            on: list = None, plat: dict = None) -> tuple:
+            on: list = None, plat: dict = None, out: dict = None) -> tuple:
     """(level, headline, replacement) for one model.
 
     level: gone | soon | moved | ok. The replacement is returned as DATA rather
@@ -496,13 +501,33 @@ def verdict(mid: str, models: dict, changes: dict,
                 also = (" (its vendor's own date is %s; you are reading the %s "
                         "one because that is how your code calls it)"
                         % (vend_when, on[0]))
+            # Structured, not only in the prose. This file already argues the
+            # point about `replacement`: putting data a consumer needs inside
+            # an English sentence makes them parse it back out. The platform,
+            # its date and the vendor's differing one are exactly that kind of
+            # data, and a CI job keying on "whose deadline is this" should not
+            # have to read the headline.
+            # Filled into a dict the caller owns rather than returned. The
+            # first attempt returned a fourth element only on this branch, so
+            # verdict's arity depended on which path it took - and the tests
+            # that unpack three broke the moment a platform answered. A
+            # function whose shape varies by branch is a trap whoever writes
+            # the next caller will also fall into.
+            if out is not None:
+                out["platform"] = on[0]
+                out["platform_end_of_life"] = when
+                out["source"] = row.get("source") or ""
+                if vend_when and vend_when != when:
+                    out["vendor_end_of_life"] = vend_when
             if left < 0:
                 return ("gone", "%s stopped serving this on %s%s"
                         % (on[0], when, also), None)
             if left <= SHUTDOWN_SOON_DAYS:
                 return ("soon", "%s stops serving this %s - %d day%s left%s"
-                        % (on[0], when, left, "" if left == 1 else "s", also), None)
-            return ("moved", "%s stops serving this %s%s" % (on[0], when, also), None)
+                        % (on[0], when, left, "" if left == 1 else "s", also),
+                        None)
+            return ("moved", "%s stops serving this %s%s" % (on[0], when, also),
+                    None)
 
     vend = [r for r in rows if r.get("type") == "VENDOR_DEPRECATION"
             and r.get("expires_on")]
@@ -601,11 +626,16 @@ def main() -> int:
 
     results = []
     for mid in sorted(used):
+        # verdict returns three items, or four when a platform answered. Not a
+        # dict, because every other caller and every test unpacks the triple.
+        extra = {}
         level, why, move = verdict(mid, models, changes,
-                                   getattr(scan, "platforms", {}).get(mid), plat)
+                                   getattr(scan, "platforms", {}).get(mid),
+                                   plat, extra)
         row = {"model": mid, "level": level, "detail": why, "files": used[mid]}
         if move:
             row["replacement"] = move
+        row.update(extra)
         results.append(row)
 
     # Worst first, BEFORE the json branch so both modes answer in the same

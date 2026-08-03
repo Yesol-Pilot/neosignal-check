@@ -504,6 +504,27 @@ def main():
     check("a tree spelling it one way claims that platform",
           only.get("anthropic/claude-3-haiku"), ["AWS Bedrock"])
 
+    # A consumer keying on "whose deadline is this" should not have to read an
+    # English sentence to find out. The file already makes this argument about
+    # `replacement`; the platform answer arrived in prose only.
+    # verdict fills a dict the caller owns. It briefly returned a fourth element
+    # on this branch only, so its arity depended on which path it took - and
+    # the checks above, which unpack three, broke the moment a platform
+    # answered. A function whose shape varies by branch is a trap for whoever
+    # writes the next caller.
+    extra = {}
+    lvl, why, _ = N.verdict("anthropic/claude-3-haiku", mods, ch,
+                            ["AWS Bedrock"], plat, extra)
+    check("verdict still returns exactly three", (lvl, why) is not None, True)
+    check("naming the platform", extra.get("platform"), "AWS Bedrock")
+    check("its date", extra.get("platform_end_of_life"), "2099-09-10")
+    check("the vendor's differing date", extra.get("vendor_end_of_life"), "2024-04-20")
+    check("and where it was read from",
+          extra.get("source"), "https://example.invalid/lifecycle")
+    plain = {}
+    N.verdict("anthropic/claude-3-haiku", mods, ch, None, plat, plain)
+    check("a vendor verdict fills nothing", plain, {})
+
     print("\nformatting")
     check("cheap prices keep three decimals", N.money(0.013), "$0.013")
     check("normal prices keep two", N.money(10.0), "$10.00")
