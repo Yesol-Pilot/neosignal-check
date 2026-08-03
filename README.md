@@ -143,12 +143,10 @@ this reported `no change recorded` and exited 0. Two days out.
 So it now reads the deprecation pages of Anthropic, OpenAI and Google directly
 and merges them into the same record. Both sources, one answer:
 
-| | |
-|---|---|
-| models with a date in the catalogue | **5** |
-| models with a date from their vendor | **22** |
+<!--both:start-->
+<!--both:end-->
 
-Every one of those 22 carries the vendor id and page it came from, so any
+Every vendor-dated row carries the vendor id and page it came from, so any
 warning traces back to a row you can read yourself. The build refuses to ship
 if a claim's id does not match its source.
 
