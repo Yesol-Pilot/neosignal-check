@@ -258,9 +258,12 @@ python check.py . --quiet
 ```
 
 `python check.py --version` prints it, and `--json` carries `tool_version`, so
-a logged result says which copy produced it. The tagged file and the one served
-from the site are byte-identical - that is the same hash claim as above, and
-you can check it the same way.
+a logged result says which copy produced it.
+
+A tag is frozen and the site tracks `main`, so the two match on the day a tag
+is cut and drift apart afterwards - that is what pinning is for, and the hash
+check above compares the site against `main` rather than against a tag for
+exactly that reason.
 
 The data is always live either way. Pinning fixes the code that reads it, not
 the catalogue it reads.

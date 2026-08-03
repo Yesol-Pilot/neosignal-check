@@ -41,12 +41,19 @@ warning can say the vendor retires something the catalogue still lists.
 
 NO KEY, NO SIGNUP, NO ACCOUNT. It reads two public JSON files.
 
-IT READS THREE SPELLINGS
+IT READS THE SPELLINGS PEOPLE ACTUALLY WRITE
 `openai/gpt-5.2-chat` is the OpenRouter form; a vendor SDK takes the bare
-`gpt-5.2-chat`; and a vendor's own dated pin looks like
-`claude-haiku-4-5-20251001`. All three resolve, each only where it lands on
+`gpt-5.2-chat`; a vendor's own dated pin looks like
+`claude-haiku-4-5-20251001`; and a router puts its route in front -
+`azure/gpt-4o`, `bedrock/anthropic.claude-3-haiku-20240307-v1:0`,
+`vertex_ai/gemini-2.5-pro`. All of them resolve, each only where it lands on
 exactly one model, so a suffix two vendors share is skipped rather than
 guessed at.
+
+The route prefixes were never designed for - measured 2026-08-04, they already
+worked, because the bare-name pass finds the model inside them. They are named
+here and pinned by tests now, because a behaviour nobody wrote down is a
+behaviour somebody removes.
 
 AND THE SPELLING SAYS WHICH DEADLINE IS YOURS
 A retirement date belongs to a model ON A PLATFORM. Anthropic retired
