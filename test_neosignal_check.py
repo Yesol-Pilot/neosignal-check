@@ -380,6 +380,72 @@ def main():
     check("a 200 with an unusable body also exits 2", code, 2)
     check("and says so too", "NOT a pass" in said, True)
 
+    print("\nspellings that were being missed silently")
+    # Each of these was measured as a miss on 2026-08-03 against the live
+    # catalogue, before the rules below were changed. None raised an error -
+    # the tool said "no model ids from the catalogue appear" and exited 0,
+    # which reads exactly like a clean bill of health.
+    real = {"openai/gpt-4", "openai/gpt-5", "microsoft/phi-4", "z-ai/glm-5",
+            "qwen/qwen3.5-27b", "meta-llama/llama-3.3-70b-instruct",
+            "amazon/nova-pro-v1", "anthropic/claude-haiku-4.5"}
+    rb, rn = N.bare_index(real), N.norm_index(real)
+
+    def resolve(tok):
+        if tok in real:
+            return tok
+        return rb.get(tok.lower()) or rn.get(N.normalize(tok))
+
+    # The most common way anyone names a model in code. The minimum length was
+    # 6 and these are 5, so a file containing nothing but `model="gpt-4"`
+    # reported a clean bill - the first thing a sceptical reader would try.
+    #
+    # These go through scan() rather than the indexes directly, because the
+    # length floor is applied in scan BEFORE either index is consulted. Asking
+    # the indexes on their own answers correctly whichever floor is set, so a
+    # test written that way passes against the broken version too - which is
+    # exactly what the first draft of this block did.
+    tmp = tempfile.mkdtemp()
+    try:
+        write(tmp, "app/a.py", 'r = client.create(model="gpt-4")\n')
+        write(tmp, "app/b.py", 'r = client.create(model="gpt-5")\n')
+        write(tmp, "app/c.py", 'M = "phi-4"\nN = "glm-5"\n')
+        write(tmp, "app/d.py", 'X = "utf-8"\nY = "node-20"\nZ = "read-timeout-30"\n')
+        seen = N.scan(tmp, real, rb, rn)
+    finally:
+        shutil.rmtree(tmp, ignore_errors=True)
+    check("gpt-4 written bare is found by a scan", "openai/gpt-4" in seen, True)
+    check("gpt-5 written bare is found by a scan", "openai/gpt-5" in seen, True)
+    check("phi-4 written bare is found by a scan", "microsoft/phi-4" in seen, True)
+    check("glm-5 written bare is found by a scan", "z-ai/glm-5" in seen, True)
+    check("and the scan invents nothing else", len(seen), 4)
+
+    # Bedrock writes Meta's family without the separator the catalogue uses.
+    check("bedrock's meta spelling folds to the catalogue id",
+          resolve("meta.llama3-3-70b-instruct-v1:0"),
+          "meta-llama/llama-3.3-70b-instruct")
+
+    # A dotted VERSION is not a vendor prefix. Reading it as one removed the
+    # first segment of every dotted Qwen id in the catalogue - 19 of them -
+    # leaving forms like `5-27b` that nothing could ever match.
+    check("a dotted version is not read as a vendor prefix",
+          resolve("qwen3.5-27b"), "qwen/qwen3.5-27b")
+    check("and its dashed sdk spelling lands on the same model",
+          resolve("qwen3-5-27b"), "qwen/qwen3.5-27b")
+
+    # The spellings that already worked have to keep working; both depend on
+    # the vendor-prefix rule that was narrowed above.
+    check("bedrock's amazon spelling still resolves",
+          resolve("amazon.nova-pro-v1:0"), "amazon/nova-pro-v1")
+    check("anthropic's dated sdk spelling still resolves",
+          resolve("claude-haiku-4-5-20251001"), "anthropic/claude-haiku-4.5")
+
+    # Lowering the floor must not start matching things that are not models.
+    # Nothing is reported unless it resolves to exactly one catalogue id, and
+    # that is what does the work the length rule used to be credited with.
+    check("a short hyphenated token that is not a model stays unmatched",
+          resolve("utf-8"), None)
+    check("a version string is not a model", resolve("node-20"), None)
+
     print("\nformatting")
     check("cheap prices keep three decimals", N.money(0.013), "$0.013")
     check("normal prices keep two", N.money(10.0), "$10.00")

@@ -138,12 +138,25 @@ CANDIDATE = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]*/[A-Za-z0-9][A-Za-z0-9._:-]*"
 #
 #   - the name must resolve to EXACTLY ONE model in the catalogue, so a suffix
 #     two vendors share is skipped rather than guessed at
-#   - at least 6 characters, so short ids like `o1` cannot collide with a
-#     variable name
+#   - at least 5 characters, so short ids cannot collide with a variable name
 #   - must contain a digit, which every real model id does and most English
 #     words do not
+#
+# The floor was 6, and 6 excluded `gpt-4` and `gpt-5`. Measured 2026-08-03: a
+# file containing nothing but `model="gpt-4"` and `model="gpt-5"` - the most
+# common way anyone writes either - reported "No model ids from the catalogue
+# appear" and exited 0. That is the first thing a sceptical reader tries, and
+# it is the answer least likely to make them try a second thing.
+#
+# Dropping to 5 admits exactly four ids and no others, because a token is only
+# ever reported if it resolves to exactly one catalogue name: `gpt-4`, `gpt-5`,
+# `phi-4`, `glm-5`. It cannot admit `o1`, `o3`, `auto`, `free`, `sonar` or
+# `hy3` - the regex above requires at least one hyphen group, so those are
+# unreachable by this path at any floor, and they are the ones a length rule
+# was really guarding against. The floor was doing almost none of the work the
+# comment claimed; the uniqueness requirement does it.
 BARE = re.compile(r"[A-Za-z][A-Za-z0-9._]*(?:-[A-Za-z0-9._]+)+")
-BARE_MIN_LEN = 6
+BARE_MIN_LEN = 5
 
 # A vendor's own SDK does not use the catalogue's spelling. Anthropic ships
 # `claude-haiku-4-5-20251001`, the catalogue lists `anthropic/claude-haiku-4.5`;
@@ -157,14 +170,39 @@ _BEDROCK_REV = re.compile(r"-v\d+(?::\d+)?$")          # bedrock "-v2:0"
 _DATE_PLAIN = re.compile(r"[-@]?20\d{6}$")             # "-20251001"
 _DATE_DASHED = re.compile(r"-20\d{2}-\d{2}-\d{2}$")    # "-2024-05-13"
 
+# Bedrock writes Meta's family as `llama3-3-70b-instruct`; the catalogue writes
+# `llama-3.3-70b-instruct`. Everything else about the two spellings already
+# folds together - only the missing separator between the letters and the
+# version digit keeps them apart, so a hyphen is inserted at that boundary on
+# both sides. Applied last, after the dots have already become dashes, so
+# `qwen3.5-35b-a3b` and `qwen3-5-35b-a3b` land on the same form too.
+#
+# Measured against the live catalogue before adding it: this creates ZERO new
+# collisions. The three that exist are unchanged and are the same rolling
+# aliases beside their own dated snapshots that norm_index already drops. A
+# folding rule that quietly merged two different models would be worse than
+# the miss it fixes, which is why the number was checked rather than assumed.
+_LETTER_DIGIT = re.compile(r"(?<=[a-z])(?=\d)")        # "llama3" -> "llama-3"
+
 
 def normalize(name: str) -> str:
     s = name.lower().split("/")[-1]
-    s = _VENDOR_PREFIX.sub("", s)
+    # Strip a Bedrock vendor prefix only when a model name is left behind.
+    # `^[a-z0-9]+\.` cannot tell `anthropic.claude-3-haiku` from `qwen3.5-27b`,
+    # and it was reading the version dot as a vendor separator: 19 catalogue
+    # ids, every Qwen with a dotted version, normalised to things like `5-27b`
+    # and `5-vl-72b-instruct`. They were unreachable through this path
+    # entirely - not misread, just gone. A real vendor prefix is always
+    # followed by a name that starts with a letter, and a version never is, so
+    # that is the test. Keeping the strip only when it produces something
+    # name-shaped fixes all 19 and leaves every Bedrock spelling working.
+    stripped = _VENDOR_PREFIX.sub("", s)
+    if stripped and stripped[0].isalpha():
+        s = stripped
     s = _BEDROCK_REV.sub("", s)
     s = _DATE_DASHED.sub("", s)
     s = _DATE_PLAIN.sub("", s)
-    return s.replace(".", "-")
+    return _LETTER_DIGIT.sub("-", s.replace(".", "-"))
 
 SHUTDOWN_SOON_DAYS = 30
 
