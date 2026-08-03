@@ -14,7 +14,7 @@ python check.py .
 
   ok     anthropic/claude-fable-5     no change recorded
   GONE   openai/gpt-5.1-chat          GONE from the catalogue on 2026-08-01,
-                                      with no end-of-life date ever published
+                                      with no date in it beforehand
          nearest still listed: openai/gpt-5.1 at $10.00 per million
          output, against the $10.00 it cost
          src/agent.ts
@@ -68,6 +68,20 @@ vendor pages, so it cannot tell you the model is retired. This reads both, every
 day, and the overlap is where these live.
 
 <!--stale:start-->
+**13 models are still listed after the vendor retired them.** The oldest by 689 days.
+
+| model | vendor's retirement date | days still listed since |
+|---|---|---|
+| `openai/gpt-3.5-turbo-0613` | 2024-09-13 | **689** |
+| `mistralai/mistral-large-2407` | 2025-03-30 | **491** |
+| `google/gemini-2.5-pro-preview-05-06` | 2025-12-02 | **244** |
+| `anthropic/claude-3-haiku` | 2026-04-20 | **105** |
+| `google/gemini-3.1-flash-lite-preview` | 2026-05-25 | **70** |
+| `anthropic/claude-opus-4` | 2026-06-15 | **49** |
+
+and 7 more.
+
+As of 2026-08-03.
 <!--stale:end-->
 
 Every row is checkable in one request from
@@ -244,7 +258,7 @@ speaks only when the two ids visibly sit in the same line.
 Fair. Here is everything it does, and how to check rather than take my word.
 
 <!--size:start-->
-**511 lines, one file, no dependencies.**
+**567 lines, one file, no dependencies.**
 <!--size:end--> Read it. It makes **two GET requests**, both to
 `neosignal-ai.vercel.app`, and it opens your files **read-only**. There is no
 write, no `subprocess`, no `eval`, no environment variable read, no telemetry,
