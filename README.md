@@ -140,8 +140,8 @@ Found on 2026-08-03 by checking this tool against Anthropic's own docs:
 of Anthropic's sixteen other models, and pointed at a repository calling it
 this reported `no change recorded` and exited 0. Two days out.
 
-So it now reads the deprecation pages of Anthropic, OpenAI and Google directly
-and merges them into the same record. Both sources, one answer:
+So it reads vendors' deprecation pages directly and merges them into the same
+record. Both sources, one answer:
 
 <!--both:start-->
 | | |
@@ -157,6 +157,11 @@ if a claim's id does not match its source.
 Where the two disagree, it says so rather than picking. A model the vendor
 retired months ago while the catalogue still lists it gets exactly that
 sentence, because which side is stale is the useful part.
+
+### How much of the catalogue this actually covers
+
+<!--coverage:start-->
+<!--coverage:end-->
 
 **What it still cannot do:** a vendor page listing only deprecations says
 nothing about a model it omits. OpenAI's carries `gpt-5-2025-08-07` and no
