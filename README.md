@@ -81,6 +81,8 @@ day, and the overlap is where these live.
 
 and 7 more.
 
+2 of these are still served on a platform whose own end-of-life is later - AWS Bedrock, in every current case - so for those the catalogue may be routing somewhere the model has not retired. The catalogue does not name the provider behind an entry, so that cannot be settled from it, and they are counted above rather than quietly dropped. The other 11 have no such route that we can see.
+
 As of 2026-08-03.
 <!--stale:end-->
 
@@ -273,7 +275,7 @@ speaks only when the two ids visibly sit in the same line.
 Fair. Here is everything it does, and how to check rather than take my word.
 
 <!--size:start-->
-**605 lines, one file, no dependencies.**
+**712 lines, one file, no dependencies.**
 <!--size:end--> Read it. It makes **two GET requests**, both to
 `neosignal-ai.vercel.app`, and it opens your files **read-only**. There is no
 write, no `subprocess`, no `eval`, no environment variable read, no telemetry,
