@@ -535,7 +535,12 @@ def main() -> int:
                   "against the %s it cost"
                   % (move["model"], money(move.get("price_per_million_output")),
                      money(move.get("gone_price_per_million_output"))))
-        if r["level"] in ("gone", "soon"):
+        # Anything but `ok` names where it is. This used to cover gone and soon
+        # only, which was fine while `moved` meant a price change - but `moved`
+        # now also carries a vendor retirement further out than 30 days, and
+        # telling someone their model retires in October without saying which
+        # file to edit leaves them to grep for it.
+        if r["level"] != "ok":
             for f in r["files"][:4]:
                 print("         %s" % f)
 
