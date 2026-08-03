@@ -92,6 +92,17 @@ import sys
 import urllib.error
 import urllib.request
 
+# A CI step that curls this file gets whatever is current, so a build that
+# passed yesterday can fail today because the TOOL changed rather than the code.
+# There was no version at all until 2026-08-04, and no way to say which one said
+# what. Dated rather than semver: this ships continuously and a date is the
+# honest description of "the copy from that day".
+#
+# Hand-set, unlike every other number here, because a version is a decision
+# rather than a measurement - it should move when someone judges the behaviour
+# changed, not because a vendor edited a page overnight.
+__version__ = "2026.08.04"
+
 SITE = "https://neosignal-ai.vercel.app"
 MODELS_URL = SITE + "/api/models.json"
 CHANGES_URL = SITE + "/api/changes.json"
@@ -625,6 +636,8 @@ def main() -> int:
     ap = argparse.ArgumentParser(
         description="Check a codebase for AI models that are gone or going away.")
     ap.add_argument("path", nargs="?", default=".", help="file or directory to scan")
+    ap.add_argument("--version", action="version",
+                    version="neosignal-check %s" % __version__)
     ap.add_argument("--json", action="store_true", help="machine-readable output")
     ap.add_argument("--quiet", action="store_true",
                     help="print nothing when everything is fine (for CI)")
@@ -692,7 +705,11 @@ def main() -> int:
     bad = [r for r in results if r["level"] in ("gone", "soon")]
 
     if args.json:
-        print(json.dumps({"scanned": args.path, "models_referenced": len(results),
+        # The version travels with the payload. A CI job that logs this should
+        # be able to say which copy of the tool produced a verdict, because the
+        # documented install is a curl that gets whatever is current.
+        print(json.dumps({"tool_version": __version__,
+                          "scanned": args.path, "models_referenced": len(results),
                           "action_required": len(bad), "results": results},
                          ensure_ascii=False, indent=1))
         return 1 if bad else 0
