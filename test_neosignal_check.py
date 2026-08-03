@@ -541,6 +541,31 @@ def main():
     N.verdict("anthropic/claude-3-haiku", mods, ch, None, plat, plain)
     check("a vendor verdict fills nothing", plain, {})
 
+    print("\na date the vendor took back")
+    # Measured 2026-08-04: Google carried 2026-10-16 for gemini-2.5-pro,
+    # gemini-2.5-flash and gemini-2.5-flash-lite, and its page now carries
+    # nothing for any of them. Anyone who ran this last week was told to
+    # migrate by October; the next run said "no change recorded" and explained
+    # nothing. A model losing its deadline is as worth knowing as gaining one.
+    pulled = {"google/gemini-2.5-pro": {"model": "google/gemini-2.5-pro",
+                                        "had": "2026-10-16",
+                                        "noticed": "2026-08-03"}}
+    wmods = {"google/gemini-2.5-pro": {}}
+    wextra = {}
+    lvl, why, _ = N.verdict("google/gemini-2.5-pro", wmods, {}, None, None,
+                            wextra, pulled)
+    check("a withdrawn date is reported, not swallowed", "2026-10-16" in why, True)
+    check("and says the date is gone rather than due",
+          "withdrawn" in why and "days left" not in why, True)
+    check("not an alarm - there is no deadline to miss", lvl, "moved")
+    check("the date is structured too", wextra.get("withdrawn_date"), "2026-10-16")
+    check("with the day it was noticed",
+          wextra.get("withdrawn_noticed"), "2026-08-03")
+    # A model nobody withdrew anything from must be untouched by this path.
+    lvl, why, _ = N.verdict("anthropic/claude-haiku-4.5", MODELS, CHANGES,
+                            None, None, {}, pulled)
+    check("a model with no withdrawal is unaffected", lvl, "ok")
+
     print("\nformatting")
     check("cheap prices keep three decimals", N.money(0.013), "$0.013")
     check("normal prices keep two", N.money(10.0), "$10.00")

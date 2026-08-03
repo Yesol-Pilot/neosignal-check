@@ -426,7 +426,8 @@ def scan(root: str, known: set, bare: dict, norms: dict = None) -> dict:
 
 
 def verdict(mid: str, models: dict, changes: dict,
-            on: list = None, plat: dict = None, out: dict = None) -> tuple:
+            on: list = None, plat: dict = None, out: dict = None,
+            pulled: dict = None) -> tuple:
     """(level, headline, replacement) for one model.
 
     level: gone | soon | moved | ok. The replacement is returned as DATA rather
@@ -590,6 +591,25 @@ def verdict(mid: str, models: dict, changes: dict,
                     % (eol, days, "" if days == 1 else "s"), None)
         return ("moved", "shuts down %s" % eol, None)
 
+    # A date the vendor published and has since taken back. Checked after the
+    # live dates and before "no change recorded", because it is neither: there
+    # is no deadline any more, and something did change.
+    #
+    # Measured 2026-08-04: Google carried 2026-10-16 for gemini-2.5-pro and its
+    # page now carries nothing. Anyone who ran this last week was told to
+    # migrate by October. Today they were told "no change recorded" with no
+    # explanation - the same quiet change this tool exists to catch, in the
+    # tool itself. Someone planning around October should hear that the plan
+    # rests on something the vendor no longer says.
+    took_back = (pulled or {}).get(mid)
+    if took_back and took_back.get("had"):
+        if out is not None:
+            out["withdrawn_date"] = took_back["had"]
+            out["withdrawn_noticed"] = took_back.get("noticed") or ""
+        return ("moved", "its vendor published %s and has since withdrawn it - "
+                         "there is no published date now"
+                % took_back["had"], None)
+
     priced = [r for r in rows if r.get("type") == "PRICING_CHANGE"]
     if priced:
         d = priced[0].get("delta") or {}
@@ -625,6 +645,10 @@ def main() -> int:
         raw = fetch(MODELS_URL).get("models") or {}
         payload = fetch(CHANGES_URL)
         changes = payload.get("changes") or {}
+        # A date the vendor published and then took back. Its own key, not a
+        # row in `changes`, because it is not something the vendor now says.
+        pulled = {r.get("model"): r for r in
+                  (payload.get("vendor_date_withdrawn") or []) if r.get("model")}
         # Platform end-of-life, published under its own key precisely so a
         # reader has to opt into it rather than have it merged in.
         plat = payload.get("platform_lifecycles") or {}
@@ -651,7 +675,7 @@ def main() -> int:
         extra = {}
         level, why, move = verdict(mid, models, changes,
                                    getattr(scan, "platforms", {}).get(mid),
-                                   plat, extra)
+                                   plat, extra, pulled)
         row = {"model": mid, "level": level, "detail": why, "files": used[mid]}
         if move:
             row["replacement"] = move
@@ -740,7 +764,12 @@ def main() -> int:
             # line above it, and the reader has to decide which half to trust.
             # Both are true - the date is real and none of them is inside the
             # next 30 days - so say that instead.
-            print("\n%d of these ha%s a date against %s, none inside %d days."
+            # "has a date against it" was written when `moved` only ever meant a
+            # future deadline. A withdrawn date is also `moved` and is the exact
+            # opposite - the date is gone - so the summary contradicted the line
+            # printed directly above it.
+            print("\n%d of these ha%s something recorded against %s, nothing "
+                  "inside %d days."
                   % (len(dated), "s" if len(dated) == 1 else "ve",
                      "it" if len(dated) == 1 else "them", SHUTDOWN_SOON_DAYS))
             print("Nothing here is urgent today. %s/gone.html" % SITE)
