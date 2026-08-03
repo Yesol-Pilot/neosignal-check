@@ -226,6 +226,19 @@ jobs:
           python check.py . --quiet
 ```
 
+### Check that the copy you downloaded is this one
+
+The file served from the site and the file in this repository are the same
+bytes. Two commands, no trust required:
+
+```bash
+curl -s https://neosignal-ai.vercel.app/check.py | shasum -a 256
+curl -sL https://raw.githubusercontent.com/Yesol-Pilot/neosignal-check/main/neosignal_check.py | shasum -a 256
+```
+
+The build refuses to deploy when they differ - that check exists because they
+did differ once, for one deploy, while this page said they could not.
+
 ### Pinning it
 
 `curl`-ing the site gets whatever is current, which is what you want from a
