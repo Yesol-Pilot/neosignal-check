@@ -1,7 +1,9 @@
 # neosignal-check
 
-Find out which AI models your code calls have been **deprecated or removed** -
-including the ones that were removed with no deprecation notice at all.
+Find out which AI models your code calls are **gone or shutting down** -
+including the ones that vanished from the catalogue with **no date in it
+beforehand**, and the ones a vendor retired while the catalogue kept selling
+them.
 
 ```
 curl -sO https://neosignal-ai.vercel.app/check.py
