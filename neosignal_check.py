@@ -475,6 +475,13 @@ def main() -> int:
             row["replacement"] = move
         results.append(row)
 
+    # Worst first, BEFORE the json branch so both modes answer in the same
+    # order. Pointed at a real repository the text output listed 370 models
+    # alphabetically with the 48 that needed attention scattered through them,
+    # and sorting only there left json consumers with the arbitrary order.
+    rank = {"gone": 0, "soon": 1, "moved": 2, "ok": 3}
+    results.sort(key=lambda r: (rank[r["level"]], r["model"]))
+
     bad = [r for r in results if r["level"] in ("gone", "soon")]
 
     if args.json:
@@ -498,12 +505,6 @@ def main() -> int:
                 % (n_skip, "" if n_skip == 1 else "s")) if n_skip else ""
         print("%d model%s referenced in %s%s\n"
               % (len(results), "" if len(results) == 1 else "s", args.path, note))
-
-    # Worst first. Pointed at a real repository this listed 370 models in
-    # alphabetical order with the 48 that needed attention scattered through
-    # them, so the answer was present and unfindable.
-    rank = {"gone": 0, "soon": 1, "moved": 2, "ok": 3}
-    results.sort(key=lambda r: (rank[r["level"]], r["model"]))
 
     # And once the fine ones outnumber what a person will read, they become a
     # count. The list exists to show what is wrong; a screen of "ok" pushes it
