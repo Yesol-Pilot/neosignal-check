@@ -144,6 +144,10 @@ So it now reads the deprecation pages of Anthropic, OpenAI and Google directly
 and merges them into the same record. Both sources, one answer:
 
 <!--both:start-->
+| | |
+|---|---|
+| models with a date in the catalogue | **5** |
+| models with a date from their vendor | **23** |
 <!--both:end-->
 
 Every vendor-dated row carries the vendor id and page it came from, so any
