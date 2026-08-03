@@ -34,7 +34,14 @@ import neosignal_check as N  # noqa: E402
 MODELS = {
     "anthropic/claude-haiku-4.5": {"context_length": 200000,
                                    "pricing": {"completion": "0.000004"}},
-    "openai/gpt-5.2-chat": {"context_length": 128000, "expiration_date": "2026-08-10",
+    # Nine days out FROM TODAY, not a fixed date. It was 2026-08-10 with a
+    # matching days_left of 9 in CHANGES, which made two problems: the check
+    # below pinned the stale stored countdown that verdict() no longer reads,
+    # and the fixture would have changed meaning on 2026-08-10 when the date
+    # went past and the model became a different case entirely.
+    "openai/gpt-5.2-chat": {"context_length": 128000,
+                            "expiration_date": (dt.date.today()
+                                                + dt.timedelta(days=9)).isoformat(),
                             "pricing": {"completion": "0.000014"}},
     "openai/gpt-5.1-codex": {"context_length": 400000,
                              "pricing": {"completion": "0.00001"}},
@@ -52,8 +59,12 @@ CHANGES = {
                         "gone_price_per_million_output": 10.0},
     }],
     "mistralai/devstral-2512": [{"type": "MODEL_REMOVED", "date": "2026-08-01"}],
-    "openai/gpt-5.2-chat": [{"type": "DEPRECATION_DEADLINE", "days_left": 9,
-                             "expires_on": "2026-08-10"}],
+    # days_left deliberately WRONG here. verdict() counts from the date now,
+    # and a fixture that agrees with a value the code must ignore cannot show
+    # that it is ignoring it.
+    "openai/gpt-5.2-chat": [{"type": "DEPRECATION_DEADLINE", "days_left": 99,
+                             "expires_on": (dt.date.today()
+                                            + dt.timedelta(days=9)).isoformat()}],
     "anthropic/claude-haiku-4.5": [],
     # An addressing variant that left the catalogue while its base model stayed.
     # Deliberately carries NO removal record, because the pipeline classifies a
@@ -239,6 +250,11 @@ def main():
     lvl, why, _ = N.verdict("openai/gpt-5.2-chat", MODELS, CHANGES)
     check("a shutdown inside the window is soon", lvl, "soon")
     check("soon states the days left", "9 days left" in why, True)
+    # The stored days_left says 99 and must not appear. This is the defect that
+    # shipped: the countdown was read from the event rather than counted, so
+    # two models carrying the same date printed different numbers.
+    check("and counts it rather than reading the stored value",
+          "99" in why, False)
 
     lvl, _, _ = N.verdict("anthropic/claude-haiku-4.5", MODELS, CHANGES)
     check("an unchanged model is ok", lvl, "ok")

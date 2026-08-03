@@ -563,11 +563,31 @@ def verdict(mid: str, models: dict, changes: dict,
 
     eol = (models[mid] or {}).get("expiration_date")
     if eol:
-        left = [r.get("days_left") for r in rows
-                if r.get("type") == "DEPRECATION_DEADLINE" and r.get("days_left") is not None]
-        days = min(left) if left else None
+        # Counted from the date, not read from the event. `days_left` is
+        # written when an event is recorded and never updated, so it is exactly
+        # as old as the day something last changed for that model. Measured
+        # 2026-08-04 against the live API: gpt-5.2-chat and gpt-5.3-chat both
+        # stored 8 for a date 6 days away, and z-ai/glm-4.5 and glm-4.5v stored
+        # 151 and 154 for the SAME date - the two are not even consistent with
+        # each other, which is what a frozen number looks like once a few days
+        # of events have gone by.
+        #
+        # The countdown is the one number a user acts on. A deadline tool that
+        # is two days optimistic about a deadline is worse than no tool.
+        days = None
+        try:
+            days = (dt.date(*map(int, eol[:10].split("-"))) - dt.date.today()).days
+        except (ValueError, TypeError):
+            left = [r.get("days_left") for r in rows
+                    if r.get("type") == "DEPRECATION_DEADLINE"
+                    and r.get("days_left") is not None]
+            days = min(left) if left else None
+        if days is not None and days < 0:
+            return ("soon", "the catalogue says this shut down %s - it is still "
+                            "listed" % eol, None)
         if days is not None and days <= SHUTDOWN_SOON_DAYS:
-            return ("soon", "shuts down %s - %d days left" % (eol, days), None)
+            return ("soon", "shuts down %s - %d day%s left"
+                    % (eol, days, "" if days == 1 else "s"), None)
         return ("moved", "shuts down %s" % eol, None)
 
     priced = [r for r in rows if r.get("type") == "PRICING_CHANGE"]
