@@ -59,6 +59,22 @@ Where the last column says nothing qualifies, that is the tool declining to
 guess. It names a replacement only when the two ids visibly sit in the same
 vendor line.
 
+## Retired by the vendor, still on sale
+
+Neither source shows this alone. A calendar-based tracker reads the vendors'
+deprecation pages and never diffs the catalogue, so it cannot tell you the entry
+is still being served. A catalogue watcher diffs the listing and never reads the
+vendor pages, so it cannot tell you the model is retired. This reads both, every
+day, and the overlap is where these live.
+
+<!--stale:start-->
+<!--stale:end-->
+
+Every row is checkable in one request from
+[`/api/changes.json`](https://neosignal-ai.vercel.app/api/changes.json) — each
+carries the vendor id the date was read from, so you can see which spelling the
+claim rests on.
+
 ## The number that explains why this exists
 
 Measured against the live catalogue, and checkable from
