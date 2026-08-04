@@ -623,6 +623,22 @@ def main():
     check("with no record at all it stays 'no record of it leaving'",
           "no record of it leaving" in why2, True)
 
+    # Tense follows the DATE. 38 of the 187 published records carried a
+    # retirement date in the FUTURE, and the line read "its vendor retired it
+    # on 2026-08-05" on 2026-08-04 - a false statement about a model that had
+    # not retired yet. Found by running the tool over a third-party repository
+    # and noticing it contradicted what the same tool said that morning.
+    ahead = (dt.date.today() + dt.timedelta(days=40)).isoformat()
+    behind = (dt.date.today() - dt.timedelta(days=40)).isoformat()
+    _l, why_f, _ = N.verdict("anthropic/claude-3-opus", MODELS, {}, None, None, {},
+                             None, {"anthropic/claude-3-opus": {"retires_on": ahead}})
+    check("a future date is not spoken of in the past", "retired it on" in why_f, False)
+    check("and it says the model is not in the catalogue, not that it left",
+          "retires it on" in why_f and "is not in the catalogue" in why_f, True)
+    _l, why_p, _ = N.verdict("anthropic/claude-3-opus", MODELS, {}, None, None, {},
+                             None, {"anthropic/claude-3-opus": {"retires_on": behind}})
+    check("a past date still reads as past", "retired it on" in why_p, True)
+
     print("\nthe case you wrote it in")
     # `GPT-4` resolved and `GPT-4o` did not, and which one you got depended on
     # something invisible: the bare index matched case exactly, the normalising

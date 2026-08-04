@@ -121,7 +121,7 @@ import urllib.request
 # moment v2026.08.04 was tagged and this file changed underneath it - a CI job
 # that reports a version has to be able to name ONE tool, which is the entire
 # reason the field exists.
-__version__ = "2026.08.04.5"
+__version__ = "2026.08.04.6"
 
 SITE = "https://neosignal-ai.vercel.app"
 MODELS_URL = SITE + "/api/models.json"
@@ -537,6 +537,11 @@ def scan(root: str, known: set, bare: dict, norms: dict = None,
     return {k: sorted(v) for k, v in found.items()}
 
 
+def _today_iso() -> str:
+    """Today in UTC, as the dates in the change record are written."""
+    return dt.datetime.now(dt.timezone.utc).date().isoformat()
+
+
 def verdict(mid: str, models: dict, changes: dict,
             on: list = None, plat: dict = None, out: dict = None,
             pulled: dict = None, delisted: dict = None) -> tuple:
@@ -595,8 +600,19 @@ def verdict(mid: str, models: dict, changes: dict,
             # the page the date came from.
             vid = rec.get("vendor_id")
             said = (" - the vendor's page calls it %s" % vid) if vid and vid != mid.split("/", 1)[-1] else ""
-            line = ("its vendor retired it on %s, and it is no longer in the "
-                    "catalogue%s" % (rec.get("retires_on", "?"), said))
+            # Tense follows the DATE, not the branch. 38 of these carry a
+            # retirement date in the future, and saying "its vendor retired it
+            # on 2026-08-05" the day before is simply false - caught by running
+            # this over a third-party repository and reading a line that
+            # contradicted what this same tool said about the same model that
+            # morning.
+            when = rec.get("retires_on", "")
+            if when and when > _today_iso():
+                line = ("its vendor retires it on %s and it is not in the "
+                        "catalogue%s" % (when, said))
+            else:
+                line = ("its vendor retired it on %s, and it is no longer in "
+                        "the catalogue%s" % (when or "?", said))
             if out is not None:
                 out["source"] = rec.get("source")
                 out["vendor_id"] = rec.get("vendor_id")
