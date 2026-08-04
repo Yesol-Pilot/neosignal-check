@@ -121,7 +121,7 @@ import urllib.request
 # moment v2026.08.04 was tagged and this file changed underneath it - a CI job
 # that reports a version has to be able to name ONE tool, which is the entire
 # reason the field exists.
-__version__ = "2026.08.05.1"
+__version__ = "2026.08.05.2"
 
 SITE = "https://neosignal-ai.vercel.app"
 MODELS_URL = SITE + "/api/models.json"
@@ -280,6 +280,13 @@ def normalize(name: str) -> str:
     return _LETTER_DIGIT.sub("-", s.replace(".", "-"))
 
 SHUTDOWN_SOON_DAYS = 30
+
+# Beyond this, a catalogue expiry date is a placeholder meaning "no expiry"
+# rather than a shutdown anyone planned. Ten years: the longest genuine notice
+# period anywhere in this record is under two, so a decade is comfortably past
+# every real plan and comfortably short of the 2098-12-31 the catalogue
+# actually uses for 2 of its 5 dated models.
+SENTINEL_EXPIRY_DAYS = 3650
 
 # A string that appears in this file and nowhere a user would write it, used
 # to recognise any copy of this script during a scan.
@@ -788,6 +795,21 @@ def verdict(mid: str, models: dict, changes: dict,
         if days is not None and days <= SHUTDOWN_SOON_DAYS:
             return ("soon", "shuts down %s - %d day%s left"
                     % (eol, days, "" if days == 1 else "s"), None)
+        # A date decades out is a placeholder for "no expiry", not a plan.
+        # Measured against the live catalogue 2026-08-05: 5 of 338 models carry
+        # an expiration_date at all, and 2 of those 5 say 2098-12-31 - seventy-
+        # two years out, which is not a product decision anybody made. The tool
+        # reported them as "shuts down 2098-12-31", which is a finding about a
+        # non-event, and a tool that reports non-events teaches the reader to
+        # skim the ones that matter.
+        #
+        # Ten years rather than a match on 2098, because the sentinel value is
+        # the catalogue's choice and it can change; what makes it a sentinel is
+        # being further out than any real deprecation plan. Nothing genuine has
+        # ever been announced a decade ahead - the longest real notice in this
+        # whole record is under two years.
+        if days is not None and days > SENTINEL_EXPIRY_DAYS:
+            return ("ok", "no change recorded", None)
         return ("moved", "shuts down %s" % eol, None)
 
     # A date the vendor published and has since taken back. Checked after the

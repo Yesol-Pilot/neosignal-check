@@ -258,6 +258,28 @@ def main():
     check("and counts it rather than reading the stored value",
           "99" in why, False)
 
+    # A catalogue expiry decades out is a placeholder for "no expiry", not a
+    # plan. Measured against the live catalogue 2026-08-05: 5 of 338 models
+    # carry an expiration_date and 2 of those say 2098-12-31, which the tool
+    # reported as "shuts down 2098-12-31". That is a finding about a non-event,
+    # and a tool that reports non-events teaches its reader to skim the ones
+    # that matter. Found by scanning a third-party repository, not a fixture.
+    sentinel = dict(MODELS)
+    sentinel["anthropic/claude-haiku-4.5"] = dict(
+        MODELS["anthropic/claude-haiku-4.5"], expiration_date="2098-12-31")
+    lvl, why, _ = N.verdict("anthropic/claude-haiku-4.5", sentinel, CHANGES)
+    check("a placeholder expiry decades out is not a shutdown", lvl, "ok")
+    check("and does not print the sentinel date", "2098" in why, False)
+    # The boundary is a real date, not a match on 2098 - the catalogue chooses
+    # that value and can change it. A date inside the ten-year line still
+    # reports.
+    real = dict(MODELS)
+    real["anthropic/claude-haiku-4.5"] = dict(
+        MODELS["anthropic/claude-haiku-4.5"],
+        expiration_date=(dt.date.today() + dt.timedelta(days=400)).isoformat())
+    lvl, why, _ = N.verdict("anthropic/claude-haiku-4.5", real, CHANGES)
+    check("a genuine far-off date still reports", lvl, "moved")
+
     lvl, _, _ = N.verdict("anthropic/claude-haiku-4.5", MODELS, CHANGES)
     check("an unchanged model is ok", lvl, "ok")
 
