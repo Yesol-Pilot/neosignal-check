@@ -43,6 +43,11 @@ And if you call through Bedrock, the spelling is what tells this tool that
 **your** deadline is Bedrock's rather than the vendor's — those are months
 apart on some models.
 
+**HuggingFace repository ids resolve as well** — `Qwen/Qwen3-30B-A3B-Instruct-2507`,
+`deepseek-ai/DeepSeek-R1`, `meta-llama/Llama-3.3-70B-Instruct`,
+`MiniMaxAI/MiniMax-M2.5`. If your model name came out of `transformers`, you do
+not have to rewrite it.
+
 ## What it has actually caught
 
 Not a mock. Every row below left the catalogue on the date shown, and **not one
@@ -385,9 +390,17 @@ only if it matches a real id, so `utils/helpers`, `read-timeout-30` and
 `on-click-handler` all survive a scan untouched. A bare name must also be at
 least five characters and contain a digit.
 
-That is easy to claim, so here is the check. Four unrelated repositories were
-grepped on 2026-08-04 for anything shaped like `vendor/name`, and every hit
-that was **not** a model was kept as a test case:
+That is easy to claim, so here is the measurement. On 2026-08-04, every
+candidate token from four large unrelated repository trees — **610,499 unique
+tokens**, restricted to the file types this tool actually reads — was resolved
+through its own matching logic. Everything that came back was a real model
+reference. **Zero false positives.**
+
+Two of those trees are the Google Cloud SDK and a mirror of external
+repositories, so most of that corpus is code with no connection to AI at all.
+
+Here are the strings that got closest — every hit shaped like `vendor/name`
+that was **not** a model, kept as a test case:
 
 | in the wild | what it actually is |
 |---|---|

@@ -596,6 +596,39 @@ def main():
                             None, None, {}, pulled)
     check("a model with no withdrawal is unaffected", lvl, "ok")
 
+    print("\nhugging face repository ids")
+    # Never designed for, and already working - found on 2026-08-04 by resolving
+    # every candidate token out of four large repository trees and reading what
+    # came back. A quarter of the unusual-looking resolutions were HF ids.
+    #
+    # Pinned because it is undocumented, and undocumented behaviour is what
+    # somebody deletes. What it actually rests on is case folding in the
+    # normalise path: drop the lowercasing there, or disable that path, and
+    # this check fails. Both were tried.
+    #
+    # (The sweep also tempted a rule rejecting mixed-case path prefixes, on the
+    # grounds that `sha512-KhYd2Hjt/O1` has one and so do `Qwen` and
+    # `MiniMaxAI`. It was NOT added, and this test would not have caught it:
+    # the bare component of a HuggingFace id resolves on its own, without the
+    # prefix. The rule was dropped because nothing measured needs it - the one
+    # token that motivated it sits in a .eml mail backup, an extension this
+    # tool does not read.)
+    hf_root = tempfile.mkdtemp(prefix="nshf-")
+    try:
+        write(hf_root, "load.py",
+              'from transformers import AutoModel\n'
+              'A = "Qwen/Qwen3-30B-A3B-Instruct-2507"\n'
+              'B = "MiniMaxAI/MiniMax-M2.5"\n'
+              'C = "Gryphe/MythoMax-L2-13b"\n')
+        hf_known = {"qwen/qwen3-30b-a3b-instruct-2507", "minimax/minimax-m2.5",
+                    "gryphe/mythomax-l2-13b"}
+        got = N.scan(hf_root, hf_known, N.bare_index(hf_known),
+                     N.norm_index(hf_known))
+        check("an uppercase vendor prefix still resolves",
+              sorted(got), sorted(hf_known))
+    finally:
+        shutil.rmtree(hf_root, ignore_errors=True)
+
     print("\nthings that look like a model id and are not")
     # Every string below was found in real files on 2026-08-04 by grepping four
     # unrelated repositories for a vendor/name shape. Not one is a model
