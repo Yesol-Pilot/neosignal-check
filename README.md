@@ -514,11 +514,10 @@ leaving, and for a few hours on 2026-08-04 this tool said "no change recorded"
 about `claude-3-opus`, `claude-3-5-sonnet-20241022` and `gemini-2.0-flash` —
 all three still referenced in real code, all three long retired.
 
-That gap is now covered from the other side: **187 models that their vendor has
-retired and the catalogue no longer lists** are read from the vendors' own
-deprecation pages and reported with the vendor's date. They are in
-[`/api/changes.json`](https://neosignal-ai.vercel.app/api/changes.json) under
-`retired_and_delisted`.
+That gap is now covered from the other side:
+
+<!--delisted:start-->
+<!--delisted:end-->
 
 What that does **not** cover: four vendors publish a deprecation page we read —
 Anthropic, OpenAI, Google and Mistral — against 58 vendors in the catalogue. For
