@@ -361,7 +361,11 @@ decline:
 
 1. the catalogue id, matched exactly;
 2. a bare name, only where it maps to exactly one model — a suffix two vendors
-   share is skipped rather than guessed at;
+   share is skipped rather than guessed at. Case is folded here, so `GPT-4o`,
+   `gpt-4o` and `GPT-4O` are one model. That was not true until 2026-08-04:
+   this step matched case exactly while step 3 folded it, so an uppercase
+   spelling worked or did not depending on which step a model happened to be
+   reachable by, and `GPT-4o` was reachable by neither;
 3. a vendor's own spelling, only after the first two find nothing. A dated pin
    sheds its date, a Bedrock id sheds its prefix and revision, and dots fold to
    dashes. Where the shortened form could mean more than one model it is
@@ -502,5 +506,17 @@ copy of it has an age.** The pages are read daily; if one breaks, the last good
 read keeps being served rather than the claim disappearing, and the tool
 appends how old the reading is once it passes a week. A date that has not been
 re-read in a month is still probably right, and you should still check it.
+
+**A model that left before this started tracking is invisible to it, and that
+silence looks exactly like a clean bill.** The first catalogue snapshot is
+dated 2026-07-29, so a removal older than that was never recorded and cannot
+be. Measured on 2026-08-04 against
+four repository trees: `claude-3-opus`, `claude-3-5-sonnet` and
+`gemini-2.0-flash` are all still referenced in real code, are all in neither the
+catalogue nor the change records, and this tool says nothing about any of them.
+Point it at a codebase that predates the tracking window and read "no change
+recorded" as *not seen*, not as *fine*. The vendor pages partly cover this —
+they carry dates for models the catalogue never listed — but only for vendors
+that still publish the entry.
 
 MIT licensed. Built by [Neo Genesis](https://neosignal-ai.vercel.app).
