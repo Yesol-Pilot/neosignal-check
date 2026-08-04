@@ -253,7 +253,7 @@ did differ once, for one deploy, while this page said they could not.
 warning tool and not what you want in a build you need to repeat. To pin:
 
 ```bash
-curl -sLo check.py https://raw.githubusercontent.com/Yesol-Pilot/neosignal-check/v2026.08.04.2/neosignal_check.py
+curl -sLo check.py https://raw.githubusercontent.com/Yesol-Pilot/neosignal-check/v2026.08.04.3/neosignal_check.py
 python check.py . --quiet
 ```
 
@@ -401,12 +401,22 @@ None of them is reported, and
 [the tests](test_neosignal_check.py) fail if that ever changes — together with
 a real id in the same directory, so the tests cannot pass by finding nothing.
 
-The same run found a case where it *did* cry wolf. The catalogue sells models
-literally named `auto` and `free`, spelling resolution keeps only the last path
-segment, and so `billing/free` and `apis/edgecontainer/v1/auto` were being
-reported as model references. Fixed on 2026-08-04, and pinned by a test. If you
-find another, [open an issue](https://github.com/Yesol-Pilot/neosignal-check/issues)
-— a false positive is treated as the most serious kind of bug this tool can have.
+Running it over other people's code has found two cases where it *did* cry
+wolf, both on 2026-08-04, both fixed the same day and pinned by tests:
+
+- The catalogue sells models literally named `auto` and `free`. Spelling
+  resolution keeps only the last path segment, so `billing/free` and
+  `apis/edgecontainer/v1/auto` were reported as model references.
+- `sha512-KhYd2Hjt/O1` — an npm integrity hash — resolved to `openai/o1` on its
+  last two characters. Base64 contains slashes, so the tail of a hash reads as
+  a path segment, and **every JavaScript repository ships a lockfile full of
+  them.**
+
+If you find another,
+[open an issue](https://github.com/Yesol-Pilot/neosignal-check/issues) — a
+false positive is treated as the most serious kind of bug this tool can have,
+because a missed model is a disappointment and an invented one is a reason to
+stop reading the output.
 
 When a model is gone it names the nearest still-listed option from the same
 vendor and model line - and when nothing qualifies it **says nothing at all**.

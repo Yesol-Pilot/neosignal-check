@@ -659,6 +659,38 @@ def main():
                   "openrouter/auto" in N.scan(word_root, words, wbare, wnorm), True)
         finally:
             shutil.rmtree(word_root, ignore_errors=True)
+
+        # An npm integrity hash. Base64 carries a slash, so the tail of one is
+        # a path segment as far as spelling resolution is concerned, and
+        # `sha512-KhYd2Hjt/O1` resolved on its last two characters to
+        # `openai/o1`. Found in a real package-lock.json in this workspace.
+        #
+        # The length rule was being applied to the raw token, which is 19
+        # characters here, rather than to the part that actually matched. Base64
+        # has no hyphen, so a lockfile can only manufacture SHORT names this way
+        # - and every JavaScript repository ships a lockfile.
+        hashy = {"openai/o1", "openai/gpt-4o"}
+        hbare, hnorm = N.bare_index(hashy), N.norm_index(hashy)
+        lock_root = tempfile.mkdtemp(prefix="nslock-")
+        try:
+            # The `+` matters and the first version of this test did not have
+            # it: base64 padding and `+` are outside the token pattern, so they
+            # are what CUTS the hash down to `sha512-KhYd2Hjt/O1`. Written as
+            # one unbroken run the token normalises to `o-1abcdefgh`, matches
+            # nothing, and the test passes whether the guard is there or not.
+            write(lock_root, "package-lock.json",
+                  '{"integrity": "sha512-KhYd2Hjt/O1+Kw=="}\n')
+            check("an integrity hash does not resolve on its tail",
+                  N.scan(lock_root, hashy, hbare, hnorm), {})
+            write(lock_root, "client.py", 'MODEL = "openai/o1"\n')
+            found = N.scan(lock_root, hashy, hbare, hnorm)
+            check("the same id written out is still found",
+                  "openai/o1" in found, True)
+            check("and only from the file that really says it",
+                  [os.path.basename(p) for p in found.get("openai/o1", [])],
+                  ["client.py"])
+        finally:
+            shutil.rmtree(lock_root, ignore_errors=True)
     finally:
         shutil.rmtree(decoy_root, ignore_errors=True)
 

@@ -113,7 +113,7 @@ import urllib.request
 # moment v2026.08.04 was tagged and this file changed underneath it - a CI job
 # that reports a version has to be able to name ONE tool, which is the entire
 # reason the field exists.
-__version__ = "2026.08.04.2"
+__version__ = "2026.08.04.3"
 
 SITE = "https://neosignal-ai.vercel.app"
 MODELS_URL = SITE + "/api/models.json"
@@ -465,6 +465,27 @@ def scan(root: str, known: set, bare: dict, norms: dict = None,
                 # `azure/mistral-large` - and unlike `something/free` that has
                 # to be deliberately written to occur at all.
                 if "/" in t and not any(c.isdigit() for c in n):
+                    continue
+                # The length rule belongs to the part that DOES the matching,
+                # not to the raw token. It was checked against `t` above, and
+                # `t` is whatever the file happened to hold - so
+                # `sha512-KhYd2Hjt/O1`, an npm integrity hash, passed at 19
+                # characters and then resolved on its last two. Measured
+                # 2026-08-04: that exact string is in a package-lock.json in
+                # this workspace and resolved to `openai/o1`.
+                #
+                # Not a curiosity. Base64 has no hyphen, so a lockfile can only
+                # produce SHORT names this way - and a slash followed by two
+                # base64 characters comes up about once in four thousand
+                # positions, against the hundreds of thousands of positions in
+                # a large lockfile. Every JavaScript repository carries one.
+                #
+                # Five models normalise below this length: auto and free, which
+                # the digit rule above already refuses, plus o1, o3 and hy3.
+                # Those three keep their exact spelling and lose only the folded
+                # route, so `azure/o1` goes unmatched. That is the price, and it
+                # is smaller than a fabricated finding in every lockfile.
+                if len(n) < BARE_MIN_LEN:
                     continue
                 mid = norms.get(n)
                 if mid and mid not in hits:
