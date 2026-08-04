@@ -121,7 +121,7 @@ import urllib.request
 # moment v2026.08.04 was tagged and this file changed underneath it - a CI job
 # that reports a version has to be able to name ONE tool, which is the entire
 # reason the field exists.
-__version__ = "2026.08.04.6"
+__version__ = "2026.08.04.7"
 
 SITE = "https://neosignal-ai.vercel.app"
 MODELS_URL = SITE + "/api/models.json"
@@ -537,6 +537,16 @@ def scan(root: str, known: set, bare: dict, norms: dict = None,
     return {k: sorted(v) for k, v in found.items()}
 
 
+def _days_until(iso: str) -> int:
+    """Days from today to an ISO date; a huge number if it cannot be read,
+    so an unparseable date is treated as far off rather than as an emergency."""
+    try:
+        return (dt.date(*map(int, iso[:10].split("-")))
+                - dt.datetime.now(dt.timezone.utc).date()).days
+    except (ValueError, TypeError):
+        return 10 ** 6
+
+
 def _today_iso() -> str:
     """Today in UTC, as the dates in the change record are written."""
     return dt.datetime.now(dt.timezone.utc).date().isoformat()
@@ -607,12 +617,24 @@ def verdict(mid: str, models: dict, changes: dict,
             # contradicted what this same tool said about the same model that
             # morning.
             when = rec.get("retires_on", "")
+            # LEVEL follows the date too, not just the wording. Fixing the tense
+            # and leaving the severity alone shipped `gpt-4o-mini-transcribe`
+            # as GONE with a 2027 date, and `gemini-embedding-001` as GONE
+            # while its vendor serves it until 2028 - 23 of 173 records more
+            # than a month out, all at the most severe level this tool has.
+            # GONE means you cannot call this any more. A model with a year to
+            # run is information, and reporting it as an emergency is the
+            # crying wolf the README promises does not happen.
             if when and when > _today_iso():
                 line = ("its vendor retires it on %s and it is not in the "
                         "catalogue%s" % (when, said))
-            else:
-                line = ("its vendor retired it on %s, and it is no longer in "
-                        "the catalogue%s" % (when or "?", said))
+                lvl = "soon" if _days_until(when) <= SHUTDOWN_SOON_DAYS else "moved"
+                if out is not None:
+                    out["source"] = rec.get("source")
+                    out["vendor_id"] = rec.get("vendor_id")
+                return (lvl, line, None)
+            line = ("its vendor retired it on %s, and it is no longer in "
+                    "the catalogue%s" % (when or "?", said))
             if out is not None:
                 out["source"] = rec.get("source")
                 out["vendor_id"] = rec.get("vendor_id")

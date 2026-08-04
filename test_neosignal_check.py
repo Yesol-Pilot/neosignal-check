@@ -639,6 +639,22 @@ def main():
                              None, {"anthropic/claude-3-opus": {"retires_on": behind}})
     check("a past date still reads as past", "retired it on" in why_p, True)
 
+    # SEVERITY follows the date as well, and fixing only the wording left this
+    # wrong: 23 of 173 records were more than a month out and every one was
+    # reported GONE - including one whose vendor serves it until 2028. GONE
+    # means you cannot call this any more. A year of runway is information.
+    far = (dt.date.today() + dt.timedelta(days=400)).isoformat()
+    near = (dt.date.today() + dt.timedelta(days=10)).isoformat()
+    lvl_far, _w, _ = N.verdict("anthropic/claude-3-opus", MODELS, {}, None, None, {},
+                               None, {"anthropic/claude-3-opus": {"retires_on": far}})
+    lvl_near, _w, _ = N.verdict("anthropic/claude-3-opus", MODELS, {}, None, None, {},
+                                None, {"anthropic/claude-3-opus": {"retires_on": near}})
+    lvl_past, _w, _ = N.verdict("anthropic/claude-3-opus", MODELS, {}, None, None, {},
+                                None, {"anthropic/claude-3-opus": {"retires_on": behind}})
+    check("a year of runway is not an emergency", lvl_far, "moved")
+    check("ten days out is", lvl_near, "soon")
+    check("and a date already past is gone", lvl_past, "gone")
+
     print("\nthe case you wrote it in")
     # `GPT-4` resolved and `GPT-4o` did not, and which one you got depended on
     # something invisible: the bare index matched case exactly, the normalising
