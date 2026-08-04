@@ -50,6 +50,14 @@ IT READS THE SPELLINGS PEOPLE ACTUALLY WRITE
 exactly one model, so a suffix two vendors share is skipped rather than
 guessed at.
 
+HuggingFace repository ids resolve too - `Qwen/Qwen3-30B-A3B-Instruct-2507`,
+`deepseek-ai/DeepSeek-R1` - and so does the case you wrote it in. Until
+2026-08-04 it did not: `GPT-4` resolved and `GPT-4o` did not, because the
+bare-name index matched case exactly while the normalising one folded it, and
+which index a model lives in is invisible from outside. Measured across four
+repository trees, that was 220 occurrences of `GPT-4o` and 81 of
+`GPT-4o-mini`, every one of them silently unreported.
+
 The route prefixes were never designed for - measured 2026-08-04, they already
 worked, because the bare-name pass finds the model inside them. They are named
 here and pinned by tests now, because a behaviour nobody wrote down is a
@@ -113,7 +121,7 @@ import urllib.request
 # moment v2026.08.04 was tagged and this file changed underneath it - a CI job
 # that reports a version has to be able to name ONE tool, which is the entire
 # reason the field exists.
-__version__ = "2026.08.04.3"
+__version__ = "2026.08.04.4"
 
 SITE = "https://neosignal-ai.vercel.app"
 MODELS_URL = SITE + "/api/models.json"
@@ -336,14 +344,32 @@ def bare_index(known: set) -> dict:
     A suffix claimed by two vendors is dropped, not guessed. Being silent about
     an ambiguous name costs a finding; naming the wrong vendor's model costs
     trust, and this product has nothing else to trade on.
+
+    Keyed in LOWERCASE, and looked up that way. This index used to match case
+    exactly while the normalising path did not, so `GPT-4` resolved and
+    `GPT-4o` did not - and the difference was invisible, because it depends on
+    which index a model happens to live in. `gpt-4o` collides with its own
+    dated snapshots, so it is dropped from the normalising index and reachable
+    only here; write it the way most of the world writes it and the tool said
+    nothing at all. Measured 2026-08-04 across four repository trees: 220
+    occurrences of `GPT-4o` and 81 of `GPT-4o-mini`, every one of them silent.
+
+    A miss is the dangerous direction. A false positive argues with you; this
+    prints a clean bill.
     """
     counts, first = {}, {}
     for mid in known:
-        tail = mid.split("/", 1)[-1]
+        tail = mid.split("/", 1)[-1].lower()
         if len(tail) < BARE_MIN_LEN or not any(c.isdigit() for c in tail):
             continue
         counts[tail] = counts.get(tail, 0) + 1
         first.setdefault(tail, mid)
+    # Uniqueness is counted on the LOWERED key, so two ids differing only by
+    # case would be dropped as ambiguous rather than one silently winning.
+    # No catalogue id needs that today - every one is already lowercase - so
+    # this half is a guard against a future id, and no test can reach it. The
+    # half that does the work is lowering the TOKEN at the lookup, and that is
+    # pinned.
     return {t: first[t] for t, n in counts.items() if n == 1}
 
 
@@ -434,7 +460,7 @@ def scan(root: str, known: set, bare: dict, norms: dict = None,
         # match on this line's id, so a file using the full form is not
         # reported twice under two spellings.
         for t in BARE.findall(text):
-            mid = bare.get(t)
+            mid = bare.get(t.lower())
             if mid and mid not in hits:
                 hits.add(mid)
                 pairs.append((t, mid))

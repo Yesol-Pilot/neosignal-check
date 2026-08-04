@@ -596,6 +596,43 @@ def main():
                             None, None, {}, pulled)
     check("a model with no withdrawal is unaffected", lvl, "ok")
 
+    print("\nthe case you wrote it in")
+    # `GPT-4` resolved and `GPT-4o` did not, and which one you got depended on
+    # something invisible: the bare index matched case exactly, the normalising
+    # index did not, and a model lives in one or the other. `gpt-4o` collides
+    # with its own dated snapshots, so it is dropped from the normalising index
+    # and reachable only through the bare one - write it the way most of the
+    # world writes it and the tool said nothing.
+    #
+    # Measured 2026-08-04 across four repository trees: 220 occurrences of
+    # `GPT-4o`, 81 of `GPT-4o-mini`, every one silent. Fixing it gained exactly
+    # those three spellings and lost nothing.
+    #
+    # This direction is the dangerous one. A false positive argues with you.
+    # A miss prints a clean bill.
+    # The catalogue pair matters and a first version of this test got it wrong.
+    # Written against a model that still has a normalising route, the check
+    # passes with the case fix REMOVED - because that route folds case anyway,
+    # so it proves nothing. The defect only exists for a model the normalising
+    # index has dropped, which is why the rolling alias and one of its own dated
+    # snapshots are both here: they normalise to the same form, collide, and
+    # leave the bare index as the only way in.
+    case_known = {"openai/gpt-4o", "openai/gpt-4o-2024-05-13"}
+    case_bare = N.bare_index(case_known)
+    case_norm = N.norm_index(case_known)
+    check("the rolling alias has no normalising route", "gpt-4o" in case_norm, False)
+    case_root = tempfile.mkdtemp(prefix="nscase-")
+    try:
+        write(case_root, "cfg.py", 'A = "GPT-4o"\n')
+        write(case_root, "other.py", 'B = "gpt-4o"\n')
+        got = N.scan(case_root, case_known, case_bare, case_norm)
+        check("upper and lower are the same model",
+              sorted(got), ["openai/gpt-4o"])
+        check("and both files are reported against it",
+              len(got.get("openai/gpt-4o", [])), 2)
+    finally:
+        shutil.rmtree(case_root, ignore_errors=True)
+
     print("\nhugging face repository ids")
     # Never designed for, and already working - found on 2026-08-04 by resolving
     # every candidate token out of four large repository trees and reading what
