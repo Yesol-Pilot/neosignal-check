@@ -300,7 +300,19 @@ def main():
 
     lvl, why, move = N.verdict("anthropic/claude-haiku-4.5", MODELS, vend)
     check("a vendor date the catalogue lacks is still a warning", lvl, "soon")
-    check("and it says the date is not the catalogue's", "not in the catalogue" in why, True)
+    check("and it says the date is not the catalogue's",
+          "no end-of-life date" in why, True)
+    # The sentence used to end "not in the catalogue", which pinned the right
+    # INTENT with wording a reader parses the other way: the subject is the
+    # model, so it reads as the model being absent. Caught by running the tool
+    # over a third-party repository, where it rendered `claude-opus-4.1 - 0
+    # days left, not in the catalogue` for a model that is in the catalogue
+    # right now. This check is the regression pin - it fails against the old
+    # wording, which the previous one did not.
+    check("and never says the model itself is absent",
+          "not in the catalogue" in why, False)
+    check("while still saying the catalogue does list it",
+          "catalogue lists it" in why, True)
     check("and carries the replacement the vendor itself named",
           (move["model"], move["kind"]), ("claude-opus-4-8", "vendor_stated"))
     # Retired upstream while the catalogue still lists it is neither gone nor

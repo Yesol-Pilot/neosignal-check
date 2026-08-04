@@ -121,7 +121,7 @@ import urllib.request
 # moment v2026.08.04 was tagged and this file changed underneath it - a CI job
 # that reports a version has to be able to name ONE tool, which is the entire
 # reason the field exists.
-__version__ = "2026.08.04.7"
+__version__ = "2026.08.05.1"
 
 SITE = "https://neosignal-ai.vercel.app"
 MODELS_URL = SITE + "/api/models.json"
@@ -736,7 +736,28 @@ def verdict(mid: str, models: dict, changes: dict,
             return ("soon", "its vendor retired this on %s - the catalogue still lists it%s"
                     % (when, stale), move)
         if left <= SHUTDOWN_SOON_DAYS:
-            return ("soon", "vendor retires this %s - %d day%s left, not in the catalogue%s"
+            # This branch is only reached for a model the catalogue DOES list -
+            # `models[mid]` is read a few lines below - and its sibling three
+            # lines up says exactly that. It nevertheless shipped saying "not
+            # in the catalogue", so the tool told a reader that a model they
+            # can call today is absent from the catalogue, in the same output
+            # where another line said the opposite about the same situation.
+            #
+            # Found by running this over a third-party repository, where the
+            # line rendered as `claude-opus-4.1 - 0 days left, not in the
+            # catalogue` for a model that is in the catalogue right now and
+            # retires today. That is the worst possible day for the sentence
+            # to be wrong.
+            #
+            # The author's intent was "the DATE is not the catalogue's" - the
+            # warning comes from the vendor page, which is this tool's whole
+            # differentiating claim - and a test pinned that intent. But the
+            # subject of the sentence is the model, so a reader parses it as
+            # the model being absent. Both facts are worth keeping, so both
+            # are said: the catalogue lists it, and the catalogue has no
+            # end-of-life date for it.
+            return ("soon", "vendor retires this %s - %d day%s left; the "
+                    "catalogue lists it with no end-of-life date%s"
                     % (when, left, "" if left == 1 else "s", stale), move)
         return ("moved", "vendor retires this %s%s" % (when, stale), move)
 
