@@ -77,6 +77,11 @@ CHANGES = {
 FAILED = []
 RAN = []
 
+# Checks this suite is known to run. Asserted as a FLOOR at the end of
+# main(): fewer means a section stopped executing, which reports as a
+# smaller green number and is otherwise invisible.
+EXPECTED_CHECKS = 130
+
 
 def check(name, got, want):
     RAN.append(name)
@@ -925,6 +930,18 @@ def main():
     if FAILED:
         print("FAILED %d of %d checks" % (len(FAILED), len(RAN)))
         return 1
+    # The comment below has been right about WHY since it was written, and the
+    # code only ever PRINTED the number. Telling a reader to look at a count is
+    # not a mechanism - it is the same "read the file count, not just the pass
+    # count" advice that another lane had to issue today after an identical
+    # tree reported 191 tests one run and 261 the next, both green.
+    #
+    # A floor, not an equality: adding checks must not fail the suite, losing
+    # them must. Raise EXPECTED_CHECKS in the commit that adds them.
+    if len(RAN) < EXPECTED_CHECKS:
+        print("FAILED - only %d checks ran, expected at least %d. A check that "
+              "did not run is not a check that passed." % (len(RAN), EXPECTED_CHECKS))
+        return 1
     # The COUNT, not just the word. A pass line counts only what ran, so a
     # section that dies early - or never gets reached because something above
     # it raised - reports "all checks passed" while a third of the suite never
@@ -935,4 +952,14 @@ def main():
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    # The floor is enforced HERE, not only inside main(), because main() can
+    # return early - and an early return skips a check placed in its verdict
+    # block, which is precisely the case the floor exists to catch. Verified by
+    # mutation: a `return 0` inserted before the last section leaves the
+    # in-main version silent and this one still fires.
+    _rc = main()
+    if _rc == 0 and len(RAN) < EXPECTED_CHECKS:
+        print("FAILED - only %d checks ran, expected at least %d. A check that "
+              "did not run is not a check that passed." % (len(RAN), EXPECTED_CHECKS))
+        _rc = 1
+    sys.exit(_rc)
