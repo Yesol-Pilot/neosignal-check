@@ -596,6 +596,33 @@ def main():
                             None, None, {}, pulled)
     check("a model with no withdrawal is unaffected", lvl, "ok")
 
+    print("\nretired by the vendor and already delisted")
+    # The case old code actually hits, and the one this tool was silent about
+    # until 2026-08-04. The catalogue diff starts at its first snapshot, so it
+    # can never reach a model that left before that - but the vendor's own page
+    # reaches back years, and 187 of those entries were being collected daily
+    # and discarded because the merge keyed on catalogue ids.
+    #
+    # Measured the same day: claude-3-opus, claude-3-5-sonnet-20241022 and
+    # gemini-2.0-flash are all still referenced in real trees, and all three
+    # produced "no change recorded".
+    delisted = {"anthropic/claude-3-opus": {"retires_on": "2026-01-05",
+                                            "vendor_id": "claude-3-opus-20240229",
+                                            "source": "https://docs.claude.com/x"}}
+    lvl, why, move = N.verdict("anthropic/claude-3-opus", MODELS, {},
+                               None, None, {}, None, delisted)
+    check("a delisted model with a vendor date is GONE, not unknown", lvl, "gone")
+    check("and the date is the vendor's", "2026-01-05" in why, True)
+    # The key has to be the normalised form for anything to match it, so the id
+    # on screen can be a spelling nobody wrote. The vendor's own is named.
+    check("the vendor's own spelling is named when it differs",
+          "claude-3-opus-20240229" in why, True)
+    # Without the record it must still say the honest thing rather than guess.
+    lvl2, why2, _ = N.verdict("anthropic/claude-3-opus", MODELS, {},
+                              None, None, {}, None, {})
+    check("with no record at all it stays 'no record of it leaving'",
+          "no record of it leaving" in why2, True)
+
     print("\nthe case you wrote it in")
     # `GPT-4` resolved and `GPT-4o` did not, and which one you got depended on
     # something invisible: the bare index matched case exactly, the normalising

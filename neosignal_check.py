@@ -121,7 +121,7 @@ import urllib.request
 # moment v2026.08.04 was tagged and this file changed underneath it - a CI job
 # that reports a version has to be able to name ONE tool, which is the entire
 # reason the field exists.
-__version__ = "2026.08.04.4"
+__version__ = "2026.08.04.5"
 
 SITE = "https://neosignal-ai.vercel.app"
 MODELS_URL = SITE + "/api/models.json"
@@ -539,7 +539,7 @@ def scan(root: str, known: set, bare: dict, norms: dict = None,
 
 def verdict(mid: str, models: dict, changes: dict,
             on: list = None, plat: dict = None, out: dict = None,
-            pulled: dict = None) -> tuple:
+            pulled: dict = None, delisted: dict = None) -> tuple:
     """(level, headline, replacement) for one model.
 
     level: gone | soon | moved | ok. The replacement is returned as DATA rather
@@ -573,6 +573,34 @@ def verdict(mid: str, models: dict, changes: dict,
                      "price_per_million_output":
                          _per_million((models[base] or {}).get("pricing", {}).get("completion")),
                      "gone_price_per_million_output": None})
+        elif (delisted or {}).get(mid):
+            # The vendor's own page still carries this one, long after the
+            # catalogue stopped listing it. That is a STRONGER statement than
+            # anything the catalogue diff can make - it is the vendor saying it
+            # retired the model, on a date, rather than us observing an entry
+            # disappear - and until 2026-08-04 it was collected every day and
+            # thrown away, because the merge keyed on catalogue ids and dropped
+            # whatever the catalogue no longer listed.
+            #
+            # This is the case old code actually hits. The first snapshot here
+            # is dated 2026-07-29, so a diff can never reach claude-3-opus or
+            # gpt-4-32k; the vendor page reaches back years, and a codebase
+            # written last year is full of them.
+            rec = delisted[mid]
+            # Name the vendor's OWN spelling when it differs from the id shown.
+            # The key has to be the normalised form or nothing would match it,
+            # but that form is synthetic - `google/gemini-2-0-flash` is a
+            # spelling nobody wrote and reads like the tool inventing a model.
+            # The vendor id is the checkable thing: it is what is printed on
+            # the page the date came from.
+            vid = rec.get("vendor_id")
+            said = (" - the vendor's page calls it %s" % vid) if vid and vid != mid.split("/", 1)[-1] else ""
+            line = ("its vendor retired it on %s, and it is no longer in the "
+                    "catalogue%s" % (rec.get("retires_on", "?"), said))
+            if out is not None:
+                out["source"] = rec.get("source")
+                out["vendor_id"] = rec.get("vendor_id")
+            return ("gone", line, None)
         else:
             # Say the true thing. We cannot tell a removal that predates our
             # tracking from a misspelling, and pretending otherwise is the one
@@ -766,6 +794,11 @@ def main() -> int:
         # Platform end-of-life, published under its own key precisely so a
         # reader has to opt into it rather than have it merged in.
         plat = payload.get("platform_lifecycles") or {}
+        # Vendor-published retirements for models the catalogue no longer
+        # lists. Its own key rather than merged into `changes`, because every
+        # published figure about models "still listed after retirement" is
+        # scoped to the catalogue and would move if these joined it.
+        delisted = payload.get("retired_and_delisted") or {}
     except (urllib.error.URLError, urllib.error.HTTPError, ValueError, OSError) as exc:
         sys.stderr.write("could not reach %s (%s)\n"
                          "nothing was checked - this is NOT a pass\n" % (SITE, exc))
@@ -779,7 +812,7 @@ def main() -> int:
     else:
         models = {m.get("id"): m for m in raw if isinstance(m, dict) and m.get("id")}
 
-    known = set(models) | set(changes)
+    known = set(models) | set(changes) | set(delisted)
 
     # A line while the walk is quiet. Measured 2026-08-04 on a 1,334-file tree:
     # 23 minutes with NOTHING on screen until the very end, because every file
@@ -815,7 +848,7 @@ def main() -> int:
         extra = {}
         level, why, move = verdict(mid, models, changes,
                                    getattr(scan, "platforms", {}).get(mid),
-                                   plat, extra, pulled)
+                                   plat, extra, pulled, delisted)
         row = {"model": mid, "level": level, "detail": why, "files": used[mid]}
         if move:
             row["replacement"] = move

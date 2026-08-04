@@ -258,7 +258,7 @@ did differ once, for one deploy, while this page said they could not.
 warning tool and not what you want in a build you need to repeat. To pin:
 
 ```bash
-curl -sLo check.py https://raw.githubusercontent.com/Yesol-Pilot/neosignal-check/v2026.08.04.4/neosignal_check.py
+curl -sLo check.py https://raw.githubusercontent.com/Yesol-Pilot/neosignal-check/v2026.08.04.5/neosignal_check.py
 python check.py . --quiet
 ```
 
@@ -507,16 +507,22 @@ read keeps being served rather than the claim disappearing, and the tool
 appends how old the reading is once it passes a week. A date that has not been
 re-read in a month is still probably right, and you should still check it.
 
-**A model that left before this started tracking is invisible to it, and that
-silence looks exactly like a clean bill.** The first catalogue snapshot is
-dated 2026-07-29, so a removal older than that was never recorded and cannot
-be. Measured on 2026-08-04 against
-four repository trees: `claude-3-opus`, `claude-3-5-sonnet` and
-`gemini-2.0-flash` are all still referenced in real code, are all in neither the
-catalogue nor the change records, and this tool says nothing about any of them.
-Point it at a codebase that predates the tracking window and read "no change
-recorded" as *not seen*, not as *fine*. The vendor pages partly cover this —
-they carry dates for models the catalogue never listed — but only for vendors
-that still publish the entry.
+**The catalogue diff cannot reach back before its first snapshot, so old code
+depends on the vendor pages instead.** The first snapshot here is dated
+2026-07-29. A model that left the catalogue before that was never observed
+leaving, and for a few hours on 2026-08-04 this tool said "no change recorded"
+about `claude-3-opus`, `claude-3-5-sonnet-20241022` and `gemini-2.0-flash` —
+all three still referenced in real code, all three long retired.
+
+That gap is now covered from the other side: **187 models that their vendor has
+retired and the catalogue no longer lists** are read from the vendors' own
+deprecation pages and reported with the vendor's date. They are in
+[`/api/changes.json`](https://neosignal-ai.vercel.app/api/changes.json) under
+`retired_and_delisted`.
+
+What that does **not** cover: four vendors publish a deprecation page we read —
+Anthropic, OpenAI, Google and Mistral — against 58 vendors in the catalogue. For
+the other 54, a removal older than 2026-07-29 is still invisible, and "no change
+recorded" there means *not seen*, not *fine*.
 
 MIT licensed. Built by [Neo Genesis](https://neosignal-ai.vercel.app).
