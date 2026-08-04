@@ -16,6 +16,7 @@ where the data came from.
 
 from __future__ import annotations
 
+import copy
 import datetime as dt
 import gzip
 import io
@@ -100,6 +101,18 @@ def write(root, rel, text):
 
 
 def main():
+    # A snapshot of the shared fixtures, compared at the end. All 130 checks
+    # run in one process against these two dicts, so a check that mutated one
+    # IN PLACE would silently change what every later check sees - the same
+    # shape as test files sharing a worker context and overwriting each
+    # other's module mocks, which cost another lane two runs with DIFFERENT
+    # failing files on identical code today.
+    #
+    # Verified clean three ways before this was added - fixtures deep-equal
+    # after a run, two consecutive runs identical at 130/0, and no runtime
+    # mutation of the tool's four module-level containers. This keeps it that
+    # way rather than leaving it a fact somebody has to re-establish.
+    _fixture_snapshot = copy.deepcopy((MODELS, CHANGES))
     known = set(MODELS) | set(CHANGES)
     bare = N.bare_index(known)
 
@@ -926,6 +939,10 @@ def main():
     check("normal prices keep two", N.money(10.0), "$10.00")
     check("a missing price is not rendered as zero", N.money(None), "?")
 
+    if copy.deepcopy((MODELS, CHANGES)) != _fixture_snapshot:
+        print("  FAIL  a check mutated the shared fixtures in place - "
+              "every check after it saw different data than intended")
+        FAILED.append("fixture mutation")
     print()
     if FAILED:
         print("FAILED %d of %d checks" % (len(FAILED), len(RAN)))
