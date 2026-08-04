@@ -199,7 +199,7 @@ CANDIDATE = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]*/[A-Za-z0-9][A-Za-z0-9._:-]*"
 # was really guarding against. The floor was doing almost none of the work the
 # comment claimed; the uniqueness requirement does it.
 BARE = re.compile(r"[A-Za-z][A-Za-z0-9._]*(?:-[A-Za-z0-9._]+)+")
-BARE_MIN_LEN = 5
+BARE_MIN_LEN = 6
 
 # A vendor's own SDK does not use the catalogue's spelling. Anthropic ships
 # `claude-haiku-4-5-20251001`, the catalogue lists `anthropic/claude-haiku-4.5`;
