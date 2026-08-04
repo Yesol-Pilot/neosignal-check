@@ -121,7 +121,7 @@ import urllib.request
 # moment v2026.08.04 was tagged and this file changed underneath it - a CI job
 # that reports a version has to be able to name ONE tool, which is the entire
 # reason the field exists.
-__version__ = "2026.08.05.2"
+__version__ = "2026.08.05.3"
 
 SITE = "https://neosignal-ai.vercel.app"
 MODELS_URL = SITE + "/api/models.json"
@@ -675,7 +675,7 @@ def verdict(mid: str, models: dict, changes: dict,
             if row.get("platform") != on[0] or not row.get("end_of_life"):
                 continue
             when = row["end_of_life"][:10]
-            left = (dt.date(*map(int, when.split("-"))) - dt.date.today()).days
+            left = (dt.date(*map(int, when.split("-"))) - dt.datetime.now(dt.timezone.utc).date()).days
             vend_when = min((r["expires_on"][:10] for r in rows
                              if r.get("type") == "VENDOR_DEPRECATION"
                              and r.get("expires_on")), default=None)
@@ -720,7 +720,7 @@ def verdict(mid: str, models: dict, changes: dict,
     if vend:
         v = min(vend, key=lambda r: r["expires_on"])
         when = v["expires_on"][:10]
-        left = (dt.date(*map(int, when.split("-"))) - dt.date.today()).days
+        left = (dt.date(*map(int, when.split("-"))) - dt.datetime.now(dt.timezone.utc).date()).days
         move = v.get("replacement")
         # Say so when the claim is old. The collector keeps serving its last
         # good copy when a vendor page breaks, which is correct - the date does
@@ -731,7 +731,7 @@ def verdict(mid: str, models: dict, changes: dict,
         stale = ""
         if read_on:
             try:
-                age = (dt.date.today() - dt.date(*map(int, read_on.split("-")))).days
+                age = (dt.datetime.now(dt.timezone.utc).date() - dt.date(*map(int, read_on.split("-")))).days
                 if age > 7:
                     stale = " (vendor page last read %d days ago)" % age
             except ValueError:
@@ -783,7 +783,7 @@ def verdict(mid: str, models: dict, changes: dict,
         # is two days optimistic about a deadline is worse than no tool.
         days = None
         try:
-            days = (dt.date(*map(int, eol[:10].split("-"))) - dt.date.today()).days
+            days = (dt.date(*map(int, eol[:10].split("-"))) - dt.datetime.now(dt.timezone.utc).date()).days
         except (ValueError, TypeError):
             left = [r.get("days_left") for r in rows
                     if r.get("type") == "DEPRECATION_DEADLINE"

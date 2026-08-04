@@ -32,6 +32,19 @@ import neosignal_check as N  # noqa: E402
 # A miniature catalogue with the shapes that matter: a live model, a live model
 # with a shutdown date, a sibling pair sharing a suffix, and two ids that a
 # careless matcher confuses with each other.
+
+def _today():
+    """UTC, because that is the clock neosignal_check measures with.
+
+    Every date fixture here was built with _today() while the tool
+    counts in UTC. For the nine hours a day when KST and UTC disagree, the
+    fixtures and the tool were on different days - which is how a hardcoded
+    "9 days left" passed for months and then failed the moment the tool's
+    own clock was corrected. A test that drifts against its subject is not
+    pinning behaviour, it is pinning a timezone.
+    """
+    return dt.datetime.now(dt.timezone.utc).date()
+
 MODELS = {
     "anthropic/claude-haiku-4.5": {"context_length": 200000,
                                    "pricing": {"completion": "0.000004"}},
@@ -41,7 +54,7 @@ MODELS = {
     # and the fixture would have changed meaning on 2026-08-10 when the date
     # went past and the model became a different case entirely.
     "openai/gpt-5.2-chat": {"context_length": 128000,
-                            "expiration_date": (dt.date.today()
+                            "expiration_date": (_today()
                                                 + dt.timedelta(days=9)).isoformat(),
                             "pricing": {"completion": "0.000014"}},
     "openai/gpt-5.1-codex": {"context_length": 400000,
@@ -64,7 +77,7 @@ CHANGES = {
     # and a fixture that agrees with a value the code must ignore cannot show
     # that it is ignoring it.
     "openai/gpt-5.2-chat": [{"type": "DEPRECATION_DEADLINE", "days_left": 99,
-                             "expires_on": (dt.date.today()
+                             "expires_on": (_today()
                                             + dt.timedelta(days=9)).isoformat()}],
     "anthropic/claude-haiku-4.5": [],
     # An addressing variant that left the catalogue while its base model stayed.
@@ -294,7 +307,7 @@ def main():
     real = dict(MODELS)
     real["anthropic/claude-haiku-4.5"] = dict(
         MODELS["anthropic/claude-haiku-4.5"],
-        expiration_date=(dt.date.today() + dt.timedelta(days=400)).isoformat())
+        expiration_date=(_today() + dt.timedelta(days=400)).isoformat())
     lvl, why, _ = N.verdict("anthropic/claude-haiku-4.5", real, CHANGES)
     check("a genuine far-off date still reports", lvl, "moved")
 
@@ -329,8 +342,8 @@ def main():
     # Anthropic publishes them on its own docs. This returned "ok" for
     # claude-opus-4.1 two days before its vendor retires it - a clean bill and
     # exit 0 on the code CI depends on.
-    soon = (dt.date.today() + dt.timedelta(days=2)).isoformat()
-    past = (dt.date.today() - dt.timedelta(days=40)).isoformat()
+    soon = (_today() + dt.timedelta(days=2)).isoformat()
+    past = (_today() - dt.timedelta(days=40)).isoformat()
     vend = dict(CHANGES)
     vend["anthropic/claude-haiku-4.5"] = [{
         "type": "VENDOR_DEPRECATION", "expires_on": soon, "vendor_status": "deprecated",
@@ -365,13 +378,13 @@ def main():
     # to be visible.
     old = dict(vend)
     old["openai/gpt-5.1"] = [dict(vend["openai/gpt-5.1"][0],
-                                  checked=(dt.date.today() - dt.timedelta(days=40)).isoformat())]
+                                  checked=(_today() - dt.timedelta(days=40)).isoformat())]
     _, why_old, _ = N.verdict("openai/gpt-5.1", MODELS, old)
     check("a stale vendor reading says how old it is",
           "vendor page last read 40 days ago" in why_old, True)
     fresh = dict(vend)
     fresh["openai/gpt-5.1"] = [dict(vend["openai/gpt-5.1"][0],
-                                    checked=dt.date.today().isoformat())]
+                                    checked=_today().isoformat())]
     _, why_new, _ = N.verdict("openai/gpt-5.1", MODELS, fresh)
     check("a fresh one stays quiet about it", "last read" in why_new, False)
     check("and names the disagreement", "the catalogue still lists it" in why, True)
@@ -680,8 +693,8 @@ def main():
     # on 2026-08-05" on 2026-08-04 - a false statement about a model that had
     # not retired yet. Found by running the tool over a third-party repository
     # and noticing it contradicted what the same tool said that morning.
-    ahead = (dt.date.today() + dt.timedelta(days=40)).isoformat()
-    behind = (dt.date.today() - dt.timedelta(days=40)).isoformat()
+    ahead = (_today() + dt.timedelta(days=40)).isoformat()
+    behind = (_today() - dt.timedelta(days=40)).isoformat()
     _l, why_f, _ = N.verdict("anthropic/claude-3-opus", MODELS, {}, None, None, {},
                              None, {"anthropic/claude-3-opus": {"retires_on": ahead}})
     check("a future date is not spoken of in the past", "retired it on" in why_f, False)
@@ -695,8 +708,8 @@ def main():
     # wrong: 23 of 173 records were more than a month out and every one was
     # reported GONE - including one whose vendor serves it until 2028. GONE
     # means you cannot call this any more. A year of runway is information.
-    far = (dt.date.today() + dt.timedelta(days=400)).isoformat()
-    near = (dt.date.today() + dt.timedelta(days=10)).isoformat()
+    far = (_today() + dt.timedelta(days=400)).isoformat()
+    near = (_today() + dt.timedelta(days=10)).isoformat()
     lvl_far, _w, _ = N.verdict("anthropic/claude-3-opus", MODELS, {}, None, None, {},
                                None, {"anthropic/claude-3-opus": {"retires_on": far}})
     lvl_near, _w, _ = N.verdict("anthropic/claude-3-opus", MODELS, {}, None, None, {},
