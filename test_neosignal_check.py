@@ -75,9 +75,11 @@ CHANGES = {
 }
 
 FAILED = []
+RAN = []
 
 
 def check(name, got, want):
+    RAN.append(name)
     if got == want:
         print("  ok    %s" % name)
     else:
@@ -594,6 +596,72 @@ def main():
                             None, None, {}, pulled)
     check("a model with no withdrawal is unaffected", lvl, "ok")
 
+    print("\nthings that look like a model id and are not")
+    # Every string below was found in real files on 2026-08-04 by grepping four
+    # unrelated repositories for a vendor/name shape. Not one is a model
+    # reference: they are npm scoped packages, GitHub issue references, C++
+    # include paths and protobuf imports. A looser matcher reports all of them,
+    # and a tool that cries wolf on `#include "google/protobuf/..."` gets
+    # deleted within a minute of being run - which is the entire reason this
+    # matches against the catalogue instead of against a pattern.
+    #
+    # The positive control at the end is not decoration. Without it this whole
+    # section passes just as well when scanning is broken and nothing at all is
+    # found, which is the shape of a test that guards nothing.
+    decoy_root = tempfile.mkdtemp(prefix="nsdecoy-")
+    try:
+        write(decoy_root, "update.ps1",
+              "# keep @openai/codex on the latest npm version\n"
+              "$before = (& $npm ls -g '@openai/codex' --depth=0)\n")
+        write(decoy_root, "watchdog.ps1",
+              "# WHY: openai/codex#22004 - Codex desktop crashes when a rollout\n")
+        write(decoy_root, "port.h",
+              '#define GTEST_PROJECT_URL_ "https://github.com/google/googletest/"\n'
+              '#include "google/protobuf/util/json_util.h"\n')
+        write(decoy_root, "svc.proto",
+              'import "google/protobuf/empty.proto";\n'
+              'import "google/protobuf/wrappers.proto";\n')
+        write(decoy_root, "gtest.cc",
+              "// https://github.com/google/googletest/blob/main/docs/advanced.md\n")
+
+        decoys = N.scan(decoy_root, known, bare, N.norm_index(known))
+        check("an npm scoped package is not its vendor's model",
+              "openai/gpt-5-codex" in decoys, False)
+        check("a github issue reference is not a model", decoys, {})
+
+        # Same tree, one real reference added. If this does not appear, the
+        # emptiness above proved nothing.
+        write(decoy_root, "agent.py", 'M = "openai/gpt-5-codex"\n')
+        with_real = N.scan(decoy_root, known, bare, N.norm_index(known))
+        check("a real id in the same tree is still found",
+              "openai/gpt-5-codex" in with_real, True)
+        check("and it is the ONLY thing found there", len(with_real), 1)
+
+        # The catalogue really does sell models called `auto` and `free`.
+        # normalize() folds `a/b/c` down to `c`, so before 2026-08-04 every
+        # `billing/free` and `apis/edgecontainer/v1/auto` in a tree resolved to
+        # one - found by running the tool over a Google Cloud SDK checkout,
+        # where it reported both across four files. A local catalogue here on
+        # purpose: this needs ids the shared fixture does not have, and adding
+        # them there would move counts in unrelated checks.
+        words = {"openrouter/auto", "openrouter/free", "openai/gpt-5.1"}
+        wbare, wnorm = N.bare_index(words), N.norm_index(words)
+        word_root = tempfile.mkdtemp(prefix="nsword-")
+        try:
+            write(word_root, "paths.py",
+                  'ROUTE = "apis/edgecontainer/v1/auto"\nTIER = "billing/free"\n')
+            check("an ordinary path segment is not a model",
+                  N.scan(word_root, words, wbare, wnorm), {})
+            # And the id itself, spelled out, still resolves - the fix drops a
+            # folding route, not the model.
+            write(word_root, "real.py", 'M = "openrouter/auto"\n')
+            check("but the id spelled in full still resolves",
+                  "openrouter/auto" in N.scan(word_root, words, wbare, wnorm), True)
+        finally:
+            shutil.rmtree(word_root, ignore_errors=True)
+    finally:
+        shutil.rmtree(decoy_root, ignore_errors=True)
+
     print("\nprogress while the walk is quiet")
     # Measured 2026-08-04 against a 1,334-file tree: the tool printed NOTHING
     # for 23 minutes and then answered. Nobody waits that long at a prompt with
@@ -660,9 +728,14 @@ def main():
 
     print()
     if FAILED:
-        print("FAILED %d of the checks above" % len(FAILED))
+        print("FAILED %d of %d checks" % (len(FAILED), len(RAN)))
         return 1
-    print("all checks passed")
+    # The COUNT, not just the word. A pass line counts only what ran, so a
+    # section that dies early - or never gets reached because something above
+    # it raised - reports "all checks passed" while a third of the suite never
+    # executed. The number is the only thing in this output that can show that,
+    # and the exit code is the only thing a script should read.
+    print("all %d checks passed" % len(RAN))
     return 0
 
 

@@ -113,7 +113,7 @@ import urllib.request
 # moment v2026.08.04 was tagged and this file changed underneath it - a CI job
 # that reports a version has to be able to name ONE tool, which is the entire
 # reason the field exists.
-__version__ = "2026.08.04.1"
+__version__ = "2026.08.04.2"
 
 SITE = "https://neosignal-ai.vercel.app"
 MODELS_URL = SITE + "/api/models.json"
@@ -355,6 +355,11 @@ def norm_index(known: set) -> dict:
     snapshots - `openai/gpt-4o` with `gpt-4o-2024-05-13` and `-2024-08-06` -
     where picking one would be picking which snapshot the reader meant. The
     same rule the bare-name index already follows: unambiguous or silent.
+
+    The catalogue does sell models called `auto` and `free`, so entries here
+    can be indistinguishable from an English word. That is not filtered at this
+    layer - the index is keyed by the model, and the ambiguity belongs to the
+    TOKEN being resolved. scan() guards it where the token is still visible.
     """
     seen = {}
     for mid in known:
@@ -442,7 +447,26 @@ def scan(root: str, known: set, bare: dict, norms: dict = None,
             for t in CANDIDATE.findall(text) + BARE.findall(text):
                 if len(t) < BARE_MIN_LEN or t in known:
                     continue
-                mid = norms.get(normalize(t))
+                n = normalize(t)
+                # normalize() keeps only the last path segment, so `billing/free`
+                # and `apis/edgecontainer/v1/auto` arrive here as `free` and
+                # `auto` - and the catalogue really does sell `openrouter/free`
+                # and `openrouter/auto`. Measured 2026-08-04 over a Google Cloud
+                # SDK checkout: both were reported across four files, from
+                # ordinary path strings, which is precisely the crying wolf the
+                # README promises does not happen.
+                #
+                # The guard is ONLY for tokens that had a path prefix dropped.
+                # A digit test on every token would have been wrong: Bedrock
+                # writes `amazon.nova-pro-v1:0`, which folds to `nova-pro` with
+                # no digit left, and that spelling is a headline feature. It has
+                # no slash, so it never reaches this line. What is given up is
+                # narrower - a route-prefixed spelling of a digit-free name,
+                # `azure/mistral-large` - and unlike `something/free` that has
+                # to be deliberately written to occur at all.
+                if "/" in t and not any(c.isdigit() for c in n):
+                    continue
+                mid = norms.get(n)
                 if mid and mid not in hits:
                     hits.add(mid)
                     pairs.append((t, mid))

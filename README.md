@@ -253,7 +253,7 @@ did differ once, for one deploy, while this page said they could not.
 warning tool and not what you want in a build you need to repeat. To pin:
 
 ```bash
-curl -sLo check.py https://raw.githubusercontent.com/Yesol-Pilot/neosignal-check/v2026.08.04.1/neosignal_check.py
+curl -sLo check.py https://raw.githubusercontent.com/Yesol-Pilot/neosignal-check/v2026.08.04.2/neosignal_check.py
 python check.py . --quiet
 ```
 
@@ -383,7 +383,30 @@ missed model is worse than no tool, because the tool was trusted.
 It never guesses what a model id looks like. Every candidate token is kept
 only if it matches a real id, so `utils/helpers`, `read-timeout-30` and
 `on-click-handler` all survive a scan untouched. A bare name must also be at
-least six characters and contain a digit.
+least five characters and contain a digit.
+
+That is easy to claim, so here is the check. Four unrelated repositories were
+grepped on 2026-08-04 for anything shaped like `vendor/name`, and every hit
+that was **not** a model was kept as a test case:
+
+| in the wild | what it actually is |
+|---|---|
+| `@openai/codex` | an npm scoped package |
+| `openai/codex#22004` | a GitHub issue reference |
+| `#include "google/protobuf/util/json_util.h"` | a C++ include path |
+| `import "google/protobuf/empty.proto";` | a protobuf import |
+| `https://github.com/google/googletest/` | a repository URL |
+
+None of them is reported, and
+[the tests](test_neosignal_check.py) fail if that ever changes — together with
+a real id in the same directory, so the tests cannot pass by finding nothing.
+
+The same run found a case where it *did* cry wolf. The catalogue sells models
+literally named `auto` and `free`, spelling resolution keeps only the last path
+segment, and so `billing/free` and `apis/edgecontainer/v1/auto` were being
+reported as model references. Fixed on 2026-08-04, and pinned by a test. If you
+find another, [open an issue](https://github.com/Yesol-Pilot/neosignal-check/issues)
+— a false positive is treated as the most serious kind of bug this tool can have.
 
 When a model is gone it names the nearest still-listed option from the same
 vendor and model line - and when nothing qualifies it **says nothing at all**.
