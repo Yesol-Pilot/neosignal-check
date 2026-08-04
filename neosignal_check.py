@@ -96,6 +96,7 @@ import json
 import os
 import re
 import sys
+import time
 import urllib.error
 import urllib.request
 
@@ -108,7 +109,11 @@ import urllib.request
 # Hand-set, unlike every other number here, because a version is a decision
 # rather than a measurement - it should move when someone judges the behaviour
 # changed, not because a vendor edited a page overnight.
-__version__ = "2026.08.04"
+# Same day, second build. The date alone stopped identifying the code the
+# moment v2026.08.04 was tagged and this file changed underneath it - a CI job
+# that reports a version has to be able to name ONE tool, which is the entire
+# reason the field exists.
+__version__ = "2026.08.04.1"
 
 SITE = "https://neosignal-ai.vercel.app"
 MODELS_URL = SITE + "/api/models.json"
@@ -357,7 +362,8 @@ def norm_index(known: set) -> dict:
     return {k: v[0] for k, v in seen.items() if len(v) == 1}
 
 
-def scan(root: str, known: set, bare: dict, norms: dict = None) -> dict:
+def scan(root: str, known: set, bare: dict, norms: dict = None,
+         progress=None) -> dict:
     """Model ids you actually reference -> the files that reference them.
 
     Skips its own file. The intended way to run this is to curl it into the
@@ -369,16 +375,32 @@ def scan(root: str, known: set, bare: dict, norms: dict = None) -> dict:
     found = {}
     skipped = []
     plats = {}
+    # Asked ONCE. This is loop-invariant - root does not change - and it used to
+    # sit on the relpath line below, so it ran per file. Measured 2026-08-04:
+    # 800 files spent 7.7 of 24.2 seconds re-answering the same question.
+    root_is_dir = os.path.isdir(root)
+    seen_files = 0
     for path in walk(root):
         if os.path.abspath(path) == self_path:
             continue
+        seen_files += 1
+        if progress is not None:
+            progress(seen_files)
         try:
-            if os.path.getsize(path) > MAX_BYTES:
-                skipped.append(path)
-                continue
+            # Size from the OPEN HANDLE, never a second look at the path. Same
+            # measurement: a path-based stat cost 9.7ms per file against 5.1ms
+            # for the open itself, because real-time antivirus inspects every
+            # path this process resolves and charges us again for the second
+            # one. fstat asks the handle already paid for, so the large-file
+            # guard below became free - and it still refuses to READ the file
+            # until the size has cleared, which is the point of the guard.
+            fh = open(path, "rb")
         except OSError:
             continue
         try:
+            if os.fstat(fh.fileno()).st_size > MAX_BYTES:
+                skipped.append(path)
+                continue
             # Bytes, then an explicit decode. A repository holds files in
             # whatever encoding their author used, so a strict read would stop
             # the scan at the first one - but "ignore" DELETES the undecodable
@@ -386,17 +408,18 @@ def scan(root: str, known: set, bare: dict, norms: dict = None) -> dict:
             # model id nobody wrote. A scanner that invents a finding is worse
             # than one that skips a file. Decoding with "replace" breaks the
             # token instead, and model ids are ASCII, so nothing real is lost.
-            with open(path, "rb") as fh:
-                text = fh.read().decode("utf-8", "replace")
+            text = fh.read().decode("utf-8", "replace")
         except (OSError, ValueError):
             continue
+        finally:
+            fh.close()
         # Skip ANY copy of this script, not only the one being executed. The
         # documented usage curls it into the directory under test, so a second
         # copy sitting there is normal - and its own documentation names real
         # model ids as examples, which would be reported as the user's.
         if SELF_MARK in text:
             continue
-        rel = os.path.relpath(path, root) if os.path.isdir(root) else path
+        rel = os.path.relpath(path, root) if root_is_dir else path
         # (token, model) pairs, not just models: the SPELLING is what says
         # which platform the caller is on, and it is discarded a few lines
         # later by the very normalisation that makes the match work.
@@ -686,7 +709,33 @@ def main() -> int:
         models = {m.get("id"): m for m in raw if isinstance(m, dict) and m.get("id")}
 
     known = set(models) | set(changes)
-    used = scan(args.path, known, bare_index(known), norm_index(known))
+
+    # A line while the walk is quiet. Measured 2026-08-04 on a 1,334-file tree:
+    # 23 minutes with NOTHING on screen until the very end, because every file
+    # is a real disk read that this host's antivirus inspects. A tool that looks
+    # hung gets killed, and the reader concludes it is broken rather than slow -
+    # so the silence was the worse defect, not the speed.
+    #
+    # stderr, never stdout: --json has to stay parseable and a pipe has to stay
+    # clean. Only when stderr is a terminal, so redirected logs and CI do not
+    # collect thousands of carriage returns. --quiet means quiet.
+    tick = None
+    if not args.quiet and sys.stderr.isatty():
+        last = [0.0]
+
+        def tick(n, _last=last):
+            now = time.time()
+            if now - _last[0] < 0.4:      # throttled by TIME, not by file count:
+                return                    # a tree of huge files is just as quiet
+            _last[0] = now
+            sys.stderr.write("\r  reading %d files..." % n)
+            sys.stderr.flush()
+
+    used = scan(args.path, known, bare_index(known), norm_index(known),
+                progress=tick)
+    if tick is not None:
+        sys.stderr.write("\r" + " " * 32 + "\r")   # erase it before real output
+        sys.stderr.flush()
 
     results = []
     for mid in sorted(used):

@@ -594,6 +594,65 @@ def main():
                             None, None, {}, pulled)
     check("a model with no withdrawal is unaffected", lvl, "ok")
 
+    print("\nprogress while the walk is quiet")
+    # Measured 2026-08-04 against a 1,334-file tree: the tool printed NOTHING
+    # for 23 minutes and then answered. Nobody waits that long at a prompt with
+    # a blank screen - they conclude it is broken and kill it, which is a worse
+    # failure than being slow. But the cure can break the tool's other contract,
+    # so all four of these are pinned together: the reassurance has to reach a
+    # human without ever touching stdout, because `--json | jq` and `> file`
+    # have to keep working, and --quiet has to stay quiet.
+    prog_root = tempfile.mkdtemp(prefix="nsprog-")
+    try:
+        for i in range(6):
+            write(prog_root, "m%d.py" % i, 'M = "anthropic/claude-haiku-4.5"\n')
+
+        class _TTY(io.StringIO):
+            def isatty(self):
+                return True
+
+        class _Pipe(io.StringIO):
+            def isatty(self):
+                return False
+
+        def run_cli(argv, err_cls):
+            out, err = io.StringIO(), err_cls()
+            real = (sys.stdout, sys.stderr, sys.argv, N.fetch)
+            sys.stdout, sys.stderr, sys.argv = out, err, ["check"] + argv
+            # No network, per this file's rule. main() is the thing under test
+            # here - the progress line lives in it, not in scan().
+            N.fetch = lambda url: ({"models": MODELS} if url == N.MODELS_URL
+                                   else {"changes": CHANGES})
+            try:
+                try:
+                    N.main()
+                except SystemExit:
+                    pass
+            finally:
+                sys.stdout, sys.stderr, sys.argv, N.fetch = real
+            return out.getvalue(), err.getvalue()
+
+        tty_out, tty_err = run_cli([prog_root], _TTY)
+        check("a terminal is told the walk is running", "reading" in tty_err, True)
+        check("and stdout is never where that goes", "\r" in tty_out, False)
+
+        json_out, json_err = run_cli([prog_root, "--json"], _TTY)
+        ok_json = True
+        try:
+            json.loads(json_out)
+        except ValueError:
+            ok_json = False
+        check("--json stdout still parses with progress on", ok_json, True)
+        check("because the progress went to stderr", "reading" in json_err, True)
+
+        _, pipe_err = run_cli([prog_root], _Pipe)
+        check("a pipe or a log file gets none of it", "reading" in pipe_err, False)
+
+        _, quiet_err = run_cli([prog_root, "--quiet"], _TTY)
+        check("--quiet means quiet", "reading" in quiet_err, False)
+    finally:
+        shutil.rmtree(prog_root, ignore_errors=True)
+
     print("\nformatting")
     check("cheap prices keep three decimals", N.money(0.013), "$0.013")
     check("normal prices keep two", N.money(10.0), "$10.00")
