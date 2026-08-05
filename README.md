@@ -204,6 +204,25 @@ nothing about a model it omits. OpenAI's carries `gpt-5-2025-08-07` and no
 a date is never projected from one onto the other. Six such claims were dropped
 rather than published; one of them would have read "gpt-5 retires 2026-12-11".
 
+## Checking the same list again next month
+
+A scan ends with a link:
+
+```
+Watch these: https://neosignal-ai.vercel.app/w/#anthropic/claude-3-opus,openai/gpt-4o
+```
+
+That page answers the same question for exactly those ids — which are
+retired, which have a shutdown date, which are fine. The list is in the URL,
+so there is no account, no signup and nothing stored: bookmark it, or send it
+to whoever owns the deploy. You can also open
+[`/w/`](https://neosignal-ai.vercel.app/w/) and paste ids in by hand.
+
+It is the same data the tool uses, from
+[`/api/watch.json`](https://neosignal-ai.vercel.app/api/watch.json) — free, no
+key. If you would rather be told than go looking, every model in the
+catalogue also has its own RSS feed.
+
 ## In CI
 
 ```yaml
