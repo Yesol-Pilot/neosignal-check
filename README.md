@@ -20,7 +20,7 @@ python check.py .
          nearest still listed: openai/gpt-5.1 at $10.00 per million
          output, against the $10.00 it cost
          src/agent.ts
-  SOON   openai/gpt-5.2-chat          shuts down 2026-08-10 - 4 days left
+  SOON   openai/gpt-5.2-chat          shuts down 2026-08-10 - 5 days left
          src/agent.ts
 
 2 need attention.
