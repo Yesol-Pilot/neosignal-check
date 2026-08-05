@@ -1,0 +1,60 @@
+# Packaging for `pip install neosignal-check`.
+#
+# The curl-and-read install stays first in the README and is not being
+# replaced. That page has a section called "Before you run a script off the
+# internet" for a reason, and a single stdlib file you can read end to end
+# before running it is a real property of this tool, not an accident. pip is
+# for people who would rather type one line; both point at the same code, and
+# the published sha256 still lets you prove the file you have is this one.
+#
+# No dependencies, and that is deliberate: the tool is standard library only,
+# so installing it can never drag a supply chain behind it.
+#
+# VERSION NOTE. __version__ is "2026.08.05.4" and PEP 440 normalises the
+# zero-padded segments away, so the artifact is 2026.8.5.4. Same version,
+# two spellings, and the difference is in the packaging layer rather than in
+# anything a reader of the tool sees. The date form is left alone on purpose:
+# it is the string in `--version`, in the README pin, and in the git tag, and
+# renaming a user-visible identifier to please a filename would be the wrong
+# way round.
+
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "neosignal-check"
+dynamic = ["version"]
+description = "Find the AI models your code calls that are retired, delisted, or shutting down."
+readme = "README.md"
+requires-python = ">=3.8"
+license = { file = "LICENSE" }
+authors = [{ name = "Neo Genesis" }]
+keywords = [
+    "llm", "deprecation", "end-of-life", "openrouter", "openai", "anthropic",
+    "model-registry", "ci", "static-analysis",
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Topic :: Software Development :: Quality Assurance",
+    "Topic :: Utilities",
+]
+
+[project.urls]
+Homepage = "https://neosignal-ai.vercel.app"
+Source = "https://github.com/Yesol-Pilot/neosignal-check"
+"Going away" = "https://neosignal-ai.vercel.app/gone.html"
+"Watch your stack" = "https://neosignal-ai.vercel.app/w/"
+
+[project.scripts]
+neosignal-check = "neosignal_check:main"
+
+[tool.setuptools]
+py-modules = ["neosignal_check"]
+
+[tool.setuptools.dynamic]
+version = { attr = "neosignal_check.__version__" }

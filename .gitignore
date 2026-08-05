@@ -4,3 +4,8 @@ __pycache__/
 # The tool is meant to be curled into the directory under test, so a stray copy
 # next to the checkout is normal usage rather than something to commit.
 check.py
+
+# packaging artifacts - built on demand, never committed
+dist/
+build/
+*.egg-info/
