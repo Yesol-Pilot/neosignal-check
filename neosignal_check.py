@@ -554,6 +554,31 @@ def _days_until(iso: str) -> int:
         return 10 ** 6
 
 
+def watch_url(used: dict) -> str:
+    """The scanned ids, as a link that answers about exactly those ids.
+
+    The tool and the site were disconnected. A developer runs this once,
+    reads the verdict in the terminal and never has a reason to come back -
+    while /w/ exists to answer this same question and had no way of learning
+    what anybody calls. The ids just resolved here ARE that list, so the tool
+    hands it over instead of making the reader retype it.
+
+    Bounded at 24 ids because a URL is not a database and a fragment that long
+    stops being pasteable. Sorted so the same repository yields the same link
+    on every run - an unstable url cannot be bookmarked, and a bookmark is the
+    entire point.
+    """
+    # Drop the `~` rows. That prefix is this tool's own marker for a name it
+    # matched loosely rather than an id the catalogue carries, so sending one
+    # to /w/ asks the site about a string that cannot be in its index and gets
+    # back a confident "not a model id this site knows". Caught by running the
+    # tool on this repository rather than by reading this function.
+    ids = sorted(i for i in used if not i.startswith("~"))[:24]
+    if not ids:
+        return ""
+    return "%s/w/#%s" % (SITE, ",".join(ids))
+
+
 def feed_hint(used: dict, models: dict) -> None:
     """Tell the caller how to be told next time, about the models they call.
 
@@ -1042,6 +1067,12 @@ def main() -> int:
     if bad:
         print("\n%d need%s attention. Full history: %s/gone.html"
               % (len(bad), "s" if len(bad) == 1 else "", SITE))
+        # Printed on the FAILING branch too, and deliberately. This is the
+        # branch a reader is on when they actually care, and the list they
+        # will want to re-check next month is the one that just failed.
+        watched = watch_url(used)
+        if watched:
+            print("Watch these: %s" % watched)
         return 1
     if not args.quiet:
         dated = [r for r in results if r["level"] == "moved"]
@@ -1072,6 +1103,9 @@ def main() -> int:
         print("That is what this can see - a vendor's own deprecation page may")
         print("carry a date the catalogue does not. %s/gone.html" % SITE)
         feed_hint(used, models)
+        watched = watch_url(used)
+        if watched:
+            print("Watch these: %s" % watched)
     return 0
 
 

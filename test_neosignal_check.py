@@ -94,7 +94,7 @@ RAN = []
 # Checks this suite is known to run. Asserted as a FLOOR at the end of
 # main(): fewer means a section stopped executing, which reports as a
 # smaller green number and is otherwise invisible.
-EXPECTED_CHECKS = 130
+EXPECTED_CHECKS = 135
 
 
 def check(name, got, want):
@@ -977,6 +977,29 @@ def main():
         sys.stdout = real_stdout
     check("nothing at all is printed when no model qualifies",
           quiet_out.getvalue(), "")
+
+    # watch_url - the link the tool hands back so a reader can re-check the
+    # same list later. Three properties, each pinned because each was wrong or
+    # nearly wrong when written.
+    #
+    # The `~` case is the one that matters: that prefix is the tool's marker
+    # for a name matched LOOSELY, so it is not an id the catalogue can carry.
+    # Sending it to /w/ produces a confident "not a model id this site knows"
+    # about a model the reader really does call. Found by running the tool on
+    # this repository, not by reading the function - and this test fails if
+    # the filter is removed.
+    url = N.watch_url({"openai/gpt-5.1": [], "~anthropic/claude-opus-latest": []})
+    check("the watch link carries a real id", "openai/gpt-5.1" in url, True)
+    check("a loosely-matched ~name is kept out of the watch link",
+          "~" in url or "claude-opus-latest" in url, False)
+    check("no ids means no link at all", N.watch_url({"~x/y": []}), "")
+    # Same repository, same link, every run. A url that reorders cannot be
+    # bookmarked, and being bookmarkable is the whole reason it exists.
+    a = N.watch_url({"b/two": [], "a/one": []})
+    b = N.watch_url({"a/one": [], "b/two": []})
+    check("the watch link is stable across dict order", a == b, True)
+    check("the watch link is bounded", len(N.watch_url(
+        {"v/m%02d" % i: [] for i in range(40)}).split("#")[1].split(",")), 24)
 
     print("\nformatting")
     check("cheap prices keep three decimals", N.money(0.013), "$0.013")
