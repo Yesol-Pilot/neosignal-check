@@ -83,22 +83,22 @@ vendor pages, so it cannot tell you the model is retired. This reads both, every
 day, and the overlap is where these live.
 
 <!--stale:start-->
-**14 models are still listed after the vendor retired them.** The oldest by 692 days.
+**13 models are still listed after the vendor retired them.** The oldest by 691 days.
 
 | model | vendor's retirement date | days still listed since |
 |---|---|---|
-| `openai/gpt-3.5-turbo-0613` | 2024-09-13 | **692** |
-| `mistralai/mistral-large-2407` | 2025-03-30 | **494** |
-| `google/gemini-2.5-pro-preview-05-06` | 2025-12-02 | **247** |
-| `anthropic/claude-3-haiku` | 2026-04-20 | **108** |
-| `google/gemini-3.1-flash-lite-preview` | 2026-05-25 | **73** |
-| `anthropic/claude-opus-4` | 2026-06-15 | **52** |
+| `openai/gpt-3.5-turbo-0613` | 2024-09-13 | **691** |
+| `mistralai/mistral-large-2407` | 2025-03-30 | **493** |
+| `google/gemini-2.5-pro-preview-05-06` | 2025-12-02 | **246** |
+| `anthropic/claude-3-haiku` | 2026-04-20 | **107** |
+| `google/gemini-3.1-flash-lite-preview` | 2026-05-25 | **72** |
+| `anthropic/claude-opus-4` | 2026-06-15 | **51** |
 
-and 8 more.
+and 7 more.
 
-3 of these are still served on a platform whose own end-of-life is later - AWS Bedrock, in every current case - so for those the catalogue may be routing somewhere the model has not retired. The catalogue does not name the provider behind an entry, so that cannot be settled from it, and they are counted above rather than quietly dropped. The other 11 have no such route that we can see.
+2 of these are still served on a platform whose own end-of-life is later - AWS Bedrock, in every current case - so for those the catalogue may be routing somewhere the model has not retired. The catalogue does not name the provider behind an entry, so that cannot be settled from it, and they are counted above rather than quietly dropped. The other 11 have no such route that we can see.
 
-As of 2026-08-06.
+As of 2026-08-05.
 <!--stale:end-->
 
 Every row is checkable in one request from
