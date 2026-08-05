@@ -20,7 +20,7 @@ python check.py .
          nearest still listed: openai/gpt-5.1 at $10.00 per million
          output, against the $10.00 it cost
          src/agent.ts
-  SOON   openai/gpt-5.2-chat          shuts down 2026-08-10 - 5 days left
+  SOON   openai/gpt-5.2-chat          shuts down 2026-08-10 - 4 days left
          src/agent.ts
 
 2 need attention.
@@ -63,7 +63,7 @@ reading that catalogue could have warned you.
 | 2026-07-30 | `openai/o3-deep-research` | **none** | _nothing qualifies_ |
 | 2026-07-30 | `openai/gpt-5-codex` | **none** | `openai/gpt-5.1-codex` |
 
-As of 2026-08-05.
+As of 2026-08-06.
 <!--evidence:end--> The live list is always at
 [neosignal-ai.vercel.app/gone.html](https://neosignal-ai.vercel.app/gone.html),
 and the raw records are in
@@ -83,22 +83,22 @@ vendor pages, so it cannot tell you the model is retired. This reads both, every
 day, and the overlap is where these live.
 
 <!--stale:start-->
-**13 models are still listed after the vendor retired them.** The oldest by 691 days.
+**14 models are still listed after the vendor retired them.** The oldest by 692 days.
 
 | model | vendor's retirement date | days still listed since |
 |---|---|---|
-| `openai/gpt-3.5-turbo-0613` | 2024-09-13 | **691** |
-| `mistralai/mistral-large-2407` | 2025-03-30 | **493** |
-| `google/gemini-2.5-pro-preview-05-06` | 2025-12-02 | **246** |
-| `anthropic/claude-3-haiku` | 2026-04-20 | **107** |
-| `google/gemini-3.1-flash-lite-preview` | 2026-05-25 | **72** |
-| `anthropic/claude-opus-4` | 2026-06-15 | **51** |
+| `openai/gpt-3.5-turbo-0613` | 2024-09-13 | **692** |
+| `mistralai/mistral-large-2407` | 2025-03-30 | **494** |
+| `google/gemini-2.5-pro-preview-05-06` | 2025-12-02 | **247** |
+| `anthropic/claude-3-haiku` | 2026-04-20 | **108** |
+| `google/gemini-3.1-flash-lite-preview` | 2026-05-25 | **73** |
+| `anthropic/claude-opus-4` | 2026-06-15 | **52** |
 
-and 7 more.
+and 8 more.
 
-2 of these are still served on a platform whose own end-of-life is later - AWS Bedrock, in every current case - so for those the catalogue may be routing somewhere the model has not retired. The catalogue does not name the provider behind an entry, so that cannot be settled from it, and they are counted above rather than quietly dropped. The other 11 have no such route that we can see.
+3 of these are still served on a platform whose own end-of-life is later - AWS Bedrock, in every current case - so for those the catalogue may be routing somewhere the model has not retired. The catalogue does not name the provider behind an entry, so that cannot be settled from it, and they are counted above rather than quietly dropped. The other 11 have no such route that we can see.
 
-As of 2026-08-05.
+As of 2026-08-06.
 <!--stale:end-->
 
 Every row is checkable in one request from
@@ -536,7 +536,7 @@ all three still referenced in real code, all three long retired.
 That gap is now covered from the other side:
 
 <!--delisted:start-->
-**173 models that their vendor has retired and the catalogue no longer lists** are read from the vendors' own deprecation pages and reported with the vendor's date, the oldest retired on 2023-03-23. They are in [`/api/changes.json`](https://neosignal-ai.vercel.app/api/changes.json) under `retired_and_delisted`, and on [the going-away page](https://neosignal-ai.vercel.app/gone.html). Vendors covered: anthropic, google, mistralai, openai.
+**172 models that their vendor has retired and the catalogue no longer lists** are read from the vendors' own deprecation pages and reported with the vendor's date, the oldest retired on 2023-03-23. They are in [`/api/changes.json`](https://neosignal-ai.vercel.app/api/changes.json) under `retired_and_delisted`, and on [the going-away page](https://neosignal-ai.vercel.app/gone.html). Vendors covered: anthropic, google, mistralai, openai.
 <!--delisted:end-->
 
 What that does **not** cover: four vendors publish a deprecation page we read —
