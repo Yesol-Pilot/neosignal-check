@@ -947,6 +947,37 @@ def main():
     finally:
         shutil.rmtree(prog_root, ignore_errors=True)
 
+    print("\ntelling the caller how to be told next time")
+    # The tool resolves a repository's model ids and then pointed at a page
+    # about every model in the world. 676 per-model feeds shipped and the one
+    # program that knows which three you care about never mentioned them.
+    #
+    # The subscription is offered for the models that are FINE, which reads
+    # backwards and is not: a model already gone needs migrating rather than
+    # monitoring, and has no feed anyway - feeds exist only for ids the
+    # catalogue still carries, the same rule the site uses.
+    hint_out = io.StringIO()
+    real_stdout = sys.stdout
+    sys.stdout = hint_out
+    try:
+        N.feed_hint({"openai/gpt-5.1": [], "anthropic/claude-3-opus": []}, MODELS)
+    finally:
+        sys.stdout = real_stdout
+    got = hint_out.getvalue()
+    check("a live model is offered its own feed",
+          "/m/openai--gpt-5.1.xml" in got, True)
+    check("a model the catalogue no longer carries is not",
+          "claude-3-opus" in got, False)
+
+    quiet_out = io.StringIO()
+    sys.stdout = quiet_out
+    try:
+        N.feed_hint({"anthropic/claude-3-opus": []}, MODELS)
+    finally:
+        sys.stdout = real_stdout
+    check("nothing at all is printed when no model qualifies",
+          quiet_out.getvalue(), "")
+
     print("\nformatting")
     check("cheap prices keep three decimals", N.money(0.013), "$0.013")
     check("normal prices keep two", N.money(10.0), "$10.00")

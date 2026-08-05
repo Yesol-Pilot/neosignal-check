@@ -121,7 +121,7 @@ import urllib.request
 # moment v2026.08.04 was tagged and this file changed underneath it - a CI job
 # that reports a version has to be able to name ONE tool, which is the entire
 # reason the field exists.
-__version__ = "2026.08.05.3"
+__version__ = "2026.08.05.4"
 
 SITE = "https://neosignal-ai.vercel.app"
 MODELS_URL = SITE + "/api/models.json"
@@ -552,6 +552,35 @@ def _days_until(iso: str) -> int:
                 - dt.datetime.now(dt.timezone.utc).date()).days
     except (ValueError, TypeError):
         return 10 ** 6
+
+
+def feed_hint(used: dict, models: dict) -> None:
+    """Tell the caller how to be told next time, about the models they call.
+
+    This tool resolves a repository's model ids and then points at a page about
+    every model in the world. The ids it just found ARE the subscription
+    somebody wants, and until now it never mentioned that per-model feeds
+    exist - 676 of them shipped and the one program that knows which three you
+    care about stayed silent.
+
+    OFFERED FOR THE MODELS THAT ARE FINE, which reads backwards and is not. A
+    model already gone needs migrating, not monitoring, and has no feed anyway:
+    a feed is written only for ids the catalogue still carries, the same rule
+    the site uses, so the two cannot disagree about which URLs exist. What is
+    worth subscribing to is the one that is healthy today.
+
+    Bounded. A repository calling two hundred models would otherwise end in two
+    hundred URLs.
+    """
+    live = sorted(m for m in used if m in models)
+    if not live:
+        return
+    print("\nBe told when these change, no signup:")
+    for mid in live[:5]:
+        print("  %s/m/%s.xml" % (SITE, mid.replace("/", "--").replace(":", "-")))
+    if len(live) > 5:
+        print("  ... and %d more, one feed per model at /m/<id>.xml"
+              % (len(live) - 5))
 
 
 def _today_iso() -> str:
@@ -1042,6 +1071,7 @@ def main() -> int:
         print("\nNo change recorded for these in the catalogue.")
         print("That is what this can see - a vendor's own deprecation page may")
         print("carry a date the catalogue does not. %s/gone.html" % SITE)
+        feed_hint(used, models)
     return 0
 
 
