@@ -63,7 +63,7 @@ reading that catalogue could have warned you.
 | 2026-07-30 | `openai/o3-deep-research` | **none** | _nothing qualifies_ |
 | 2026-07-30 | `openai/gpt-5-codex` | **none** | `openai/gpt-5.1-codex` |
 
-As of 2026-08-06.
+As of 2026-08-05.
 <!--evidence:end--> The live list is always at
 [neosignal-ai.vercel.app/gone.html](https://neosignal-ai.vercel.app/gone.html),
 and the raw records are in
