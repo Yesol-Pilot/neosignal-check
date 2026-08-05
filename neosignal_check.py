@@ -554,7 +554,7 @@ def _days_until(iso: str) -> int:
         return 10 ** 6
 
 
-def watch_url(used: dict) -> str:
+def watch_url(used: dict, flagged=None) -> str:
     """The scanned ids, as a link that answers about exactly those ids.
 
     The tool and the site were disconnected. A developer runs this once,
@@ -573,7 +573,17 @@ def watch_url(used: dict) -> str:
     # to /w/ asks the site about a string that cannot be in its index and gets
     # back a confident "not a model id this site knows". Caught by running the
     # tool on this repository rather than by reading this function.
-    ids = sorted(i for i in used if not i.startswith("~"))[:24]
+    clean = [i for i in used if not i.startswith("~")]
+    # The ones with a finding go in FIRST, and this is the whole point of the
+    # `flagged` argument. Measured on a 19-finding repository: the cap is 24
+    # and the list was sorted alphabetically, so the link carried anthropic,
+    # deepseek and google - all fine - while openai/sora-2, poolside/
+    # laguna-s-2.1, qwen/qwen3-coder-next and z-ai/glm-5.2, every one of them
+    # a model the tool had just reported, fell off the end. The link handed to
+    # a reader excluded exactly the models it told them to worry about.
+    first = sorted(i for i in clean if i in (flagged or ()))
+    rest = sorted(i for i in clean if i not in (flagged or ()))
+    ids = (first + rest)[:24]
     if not ids:
         return ""
     return "%s/w/#%s" % (SITE, ",".join(ids))
@@ -907,6 +917,28 @@ def main() -> int:
                     help="print nothing when everything is fine (for CI)")
     args = ap.parse_args()
 
+    # A target that does not exist is UNCHECKABLE, not clean. Exit 2, the code
+    # already documented for "could not check".
+    #
+    # Until this existed the tool walked a nonexistent path, found nothing, and
+    # said so in the voice of a pass: `--quiet` printed NOTHING and it exited
+    # 0. Measured 2026-08-05: `D:/does/not/exist/at/all` returned exit 0 in
+    # silence. In CI that is a green step forever, and it is the worst possible
+    # shape for this particular tool - the entire pitch is that it fails a
+    # build before a model does, so a typo in the path quietly removes the
+    # protection while leaving the badge green.
+    #
+    # Found by accident: a subprocess passed the bash spelling `/d/00.test/...`
+    # to a Windows python, which cannot resolve it, and a tree that had just
+    # reported 19 findings came back clean and exited 0. That is also a real
+    # user's Tuesday - one wrong path separator, silently no coverage.
+    if not os.path.exists(args.path):
+        sys.stderr.write(
+            "cannot check %s - no such file or directory.\n"
+            "This is exit 2 (could not check), NOT a clean bill. A path that "
+            "does not exist has not been scanned.\n" % args.path)
+        return 2
+
     # Fetch, then normalise the dict-or-list shape once. The catalogue stores
     # models keyed by id; a list is accepted too so a future shape change does
     # not silently report a clean scan.
@@ -1070,7 +1102,7 @@ def main() -> int:
         # Printed on the FAILING branch too, and deliberately. This is the
         # branch a reader is on when they actually care, and the list they
         # will want to re-check next month is the one that just failed.
-        watched = watch_url(used)
+        watched = watch_url(used, [r["model"] for r in bad])
         if watched:
             print("Watch these: %s" % watched)
         return 1

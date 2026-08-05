@@ -94,7 +94,7 @@ RAN = []
 # Checks this suite is known to run. Asserted as a FLOOR at the end of
 # main(): fewer means a section stopped executing, which reports as a
 # smaller green number and is otherwise invisible.
-EXPECTED_CHECKS = 135
+EXPECTED_CHECKS = 138
 
 
 def check(name, got, want):
@@ -1000,6 +1000,21 @@ def main():
     check("the watch link is stable across dict order", a == b, True)
     check("the watch link is bounded", len(N.watch_url(
         {"v/m%02d" % i: [] for i in range(40)}).split("#")[1].split(",")), 24)
+
+    # The flagged ids go FIRST, and this is the case that made the argument
+    # exist. Measured on a 19-finding tree: the cap is 24 and the list was
+    # sorted alphabetically, so the link carried anthropic and google - all
+    # fine - while the models the tool had just REPORTED fell off the end.
+    # A link that excludes exactly what it told you to worry about is worse
+    # than no link.
+    many = {"a/aa-1-ok": [], "z/zz-9-broken": []}
+    many.update({"m/mid%02d-x" % i: [] for i in range(30)})
+    link = N.watch_url(many, ["z/zz-9-broken"])
+    check("a flagged model survives the cap", "z/zz-9-broken" in link, True)
+    check("the flagged model is first in the link",
+          link.split("#")[1].split(",")[0], "z/zz-9-broken")
+    check("flagging nothing still returns a link",
+          N.watch_url({"a/aa-1-ok": []}, []).endswith("#a/aa-1-ok"), True)
 
     print("\nformatting")
     check("cheap prices keep three decimals", N.money(0.013), "$0.013")
