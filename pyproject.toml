@@ -10,13 +10,15 @@
 # No dependencies, and that is deliberate: the tool is standard library only,
 # so installing it can never drag a supply chain behind it.
 #
-# VERSION NOTE. __version__ is "2026.08.05.4" and PEP 440 normalises the
-# zero-padded segments away, so the artifact is 2026.8.5.4. Same version,
-# two spellings, and the difference is in the packaging layer rather than in
-# anything a reader of the tool sees. The date form is left alone on purpose:
-# it is the string in `--version`, in the README pin, and in the git tag, and
-# renaming a user-visible identifier to please a filename would be the wrong
-# way round.
+# VERSION NOTE, rewritten 2026-08-07 because the reasoning below it was wrong.
+# It used to argue for keeping the zero-padded date form "2026.08.05.4" on the
+# grounds that PEP 440 only changes the packaging layer and never anything a
+# reader of the tool sees. That held exactly as long as the tool was never
+# packaged. It is now published to PyPI, where `pip show` and the wheel filename
+# both report the NORMALISED string while `--version` reports the literal one -
+# so the two spellings are visible to the same person at the same time, which is
+# the confusion the old note assumed could not happen. The version is now
+# "2026.8.6.1", which PEP 440 leaves alone, so every surface agrees.
 
 [build-system]
 requires = ["setuptools>=61"]

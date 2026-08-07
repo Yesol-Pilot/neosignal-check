@@ -277,7 +277,7 @@ did differ once, for one deploy, while this page said they could not.
 warning tool and not what you want in a build you need to repeat. To pin:
 
 ```bash
-curl -sLo check.py https://raw.githubusercontent.com/Yesol-Pilot/neosignal-check/v2026.08.05.4/neosignal_check.py
+curl -sLo check.py https://raw.githubusercontent.com/Yesol-Pilot/neosignal-check/v2026.8.6.1/neosignal_check.py
 python check.py . --quiet
 ```
 
