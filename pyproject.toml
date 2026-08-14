@@ -10,15 +10,25 @@
 # No dependencies, and that is deliberate: the tool is standard library only,
 # so installing it can never drag a supply chain behind it.
 #
-# VERSION NOTE, rewritten 2026-08-07 because the reasoning below it was wrong.
+# VERSION NOTE, rewritten 2026-08-07 because the reasoning below it was wrong,
+# and corrected again 2026-08-15 because the rewrite overstated its own status.
 # It used to argue for keeping the zero-padded date form "2026.08.05.4" on the
 # grounds that PEP 440 only changes the packaging layer and never anything a
-# reader of the tool sees. That held exactly as long as the tool was never
-# packaged. It is now published to PyPI, where `pip show` and the wheel filename
-# both report the NORMALISED string while `--version` reports the literal one -
-# so the two spellings are visible to the same person at the same time, which is
-# the confusion the old note assumed could not happen. The version is now
-# "2026.8.6.1", which PEP 440 leaves alone, so every surface agrees.
+# reader of the tool sees. That holds exactly as long as the tool is never
+# packaged, and it is now packaged - once it IS on PyPI, `pip show` and the
+# wheel filename will report the NORMALISED string while `--version` reports the
+# literal one, so both spellings become visible to the same person at the same
+# time, which is the confusion the old note assumed could not happen. The version
+# is therefore "2026.8.6.1", which PEP 440 leaves alone, so every surface agrees.
+#
+# NOT YET PUBLISHED. The 2026-08-07 rewrite of this note said "It is now
+# published to PyPI". That was false and stayed false in public for 8 days:
+# https://pypi.org/pypi/neosignal-check/json returned 404 when this correction
+# was written, no release has ever been uploaded, and no PyPI account exists
+# (registration stops at a human-only captcha). A distribution artifact was
+# BUILT, which is not the same act. Saying otherwise on the public repo of a
+# supply-chain tool is exactly the kind of unearned provenance claim this tool
+# is supposed to catch in other people's software.
 
 [build-system]
 requires = ["setuptools>=61"]
