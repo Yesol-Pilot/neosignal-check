@@ -40,32 +40,36 @@
 # for 8 days and was corrected on 2026-08-15.
 
 [build-system]
-# >=77 is load-bearing, not a rounded-up guess: it is the first setuptools that
-# writes a PEP 639 License-Expression from the `license = "MIT"` string below.
-# An older setuptools does not fail loudly on it - it can emit the string into
-# the legacy License field instead, which is how a wheel ends up quietly
-# disagreeing with its own repo about its licence.
+# Flit, and the reason is a defect this file used to argue was acceptable.
 #
-# BUILD-TIME AND RUNTIME FLOORS ARE DIFFERENT HERE, and the difference is
-# deliberate - do not "fix" it by aligning them without reading this. Measured
-# 2026-08-15: setuptools >=77 does not itself run on Python 3.8, so
-# `pip install neosignal_check-0.1.0.tar.gz` under a 3.8 toolchain fails to
-# resolve the build requirement, while the built wheel installs and runs on
-# 3.8 perfectly (verified: entry point reports 0.1.0 on 3.8.20).
+# WHAT WAS HERE BEFORE: `setuptools>=77`, with a long comment defending a split
+# between the build-time floor (3.9, because setuptools>=77 does not run on 3.8)
+# and the runtime floor (3.8). The defence was that the wheel is `py3-none-any`,
+# so every real install resolves to the wheel and never touches the sdist.
 #
-# That is a normal split - Requires-Python constrains RUNNING the distribution,
-# not building it - and it costs real users nothing, because the wheel is
-# `py3-none-any`: pure Python, no platform tag, so every platform and every
-# supported interpreter resolves to that wheel and never touches the sdist. The
-# only path that hits this is a deliberate `--no-binary`, on 3.8, from source.
-# The alternative was raising the runtime floor to 3.9 purely to satisfy a
-# BUILD tool, which would drop genuinely working 3.8 CI images - the exact
-# population this tool is aimed at - to tidy a case almost nobody executes.
-# UNRESOLVED and deliberately not frozen: whether to keep this split or drop
-# SPDX for an older setuptools. Nothing is published, so it costs nothing to
-# decide it properly rather than at a deadline.
-requires = ["setuptools>=77"]
-build-backend = "setuptools.build_meta"
+# WHY IT IS GONE. A cross-family dissent (NEOSIG-SDIST38-DISSENT-20260815-T1,
+# gpt-5.6-sol, verdict REFUTED, adopted in full) measured the sdist path on
+# 3.8.20 and it is genuinely broken: pip 25.0.1 says `No matching distribution
+# found for setuptools>=77`, uv says `Python 3.8.20 does not satisfy
+# Python>=3.9`. That is not a theoretical path - it is `--no-binary`, sdist-only
+# mirrors, and corporate proxies that rebuild from source. The same dissent then
+# proved a third option the argument above never considered: changing ONLY the
+# build backend to flit_core makes the sdist BUILD and the direct sdist INSTALL
+# both succeed on 3.8.20 while keeping the PEP 639 metadata. So the split was
+# never a trade-off that had to be made, and "harmless in the common path" is a
+# weak reason to freeze a known defect into a version PyPI never lets you reuse.
+#
+# ONE CLAIM IN THE OLD COMMENT WAS SIMPLY FALSE, and it is corrected rather than
+# carried forward: it said an older setuptools "does not fail loudly" on the
+# SPDX `license = "MIT"` string and could quietly emit it into the legacy
+# License field. Measured: setuptools 75.3.2 fails LOUDLY with a schema error.
+# PEP 639 support begins at setuptools 77.0.0; below it the build stops.
+#
+# flit_core is pinned <4 because a major bump is where a backend is allowed to
+# change what lands in the archives, and >=3.11 is the floor that emits
+# `License-Expression` (PEP 639) rather than the deprecated classifier.
+requires = ["flit_core>=3.11,<4"]
+build-backend = "flit_core.buildapi"
 
 [project]
 name = "neosignal-check"
@@ -155,11 +159,18 @@ Issues = "https://github.com/Yesol-Pilot/neosignal-check/issues"
 [project.scripts]
 neosignal-check = "neosignal_check:main"
 
-[tool.setuptools]
+[tool.flit.module]
 # One module, no package directory. The same file is also served from the site
 # as check.py for people who would rather read it before running it, and that
 # route is not being retired - this is an additional way in, not a replacement.
-py-modules = ["neosignal_check"]
+#
+# Stated explicitly even though Flit would infer `neosignal_check` from the
+# distribution name: the inference is a dash-to-underscore rule, and a rename on
+# either side would silently repoint the build rather than fail.
+name = "neosignal_check"
 
-[tool.setuptools.dynamic]
-version = { attr = "neosignal_check.__version__" }
+# `version` is the only dynamic field, and Flit reads it from the module's
+# `__version__` - the same single source setuptools read via
+# `[tool.setuptools.dynamic]`. `description` stays STATIC above on purpose:
+# Flit would otherwise take it from the module docstring's first line, which is
+# written for someone reading the file, not for a PyPI summary line.
