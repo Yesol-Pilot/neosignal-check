@@ -1,0 +1,102 @@
+# Publish neosignal-check to PyPI via Trusted Publishing (OIDC).
+#
+# WHY THIS FILE EXISTS, and what it does NOT solve.
+#
+# The 2026-08-15 board pass (x.board P49) withdrew its own ruling that the PyPI
+# account step was "genuinely owner-only, one tap" and ordered three checks
+# before the owner is asked at all. One of them was whether the Trusted
+# Publisher / GitHub Actions OIDC path removes the account-creation step
+# entirely. Measured against the official docs the same day:
+#
+#   IT DOES NOT. A "pending publisher" - the mechanism that lets OIDC create a
+#   project that does not exist yet - is configured "under your account sidebar
+#   instead of any project's sidebar (since the project doesn't exist yet)"
+#   (docs.pypi.org/trusted-publishers/creating-a-project-through-oidc/). An
+#   account sidebar presupposes an account. PyPI has no anonymous publish path,
+#   so the signup remains irreducibly the owner's.
+#
+#   WHAT IT DOES REMOVE is the API token. The 2026-08-05 owner card
+#   (company-557b473b) asked the owner to create an account AND mint an API
+#   token AND hand that token to an agent. With this workflow the token step is
+#   gone: PyPI mints a short-lived token per run against this repo's OIDC
+#   identity, so no long-lived PyPI credential is ever created, transmitted, or
+#   stored anywhere in the estate. For a supply-chain provenance tool, shipping
+#   its own release through a pasted long-lived token would have been the wrong
+#   advertisement.
+#
+# THE OWNER'S REMAINING STEP IS THEREFORE: create the account (the hCaptcha),
+# then register a pending publisher with exactly these four values -
+#
+#   PyPI Project Name:  neosignal-check
+#   Owner:              Yesol-Pilot
+#   Repository name:    neosignal-check
+#   Workflow name:      publish.yml
+#   Environment name:   pypi
+#
+# - and nothing else. No token is ever generated or shared.
+#
+# MANUAL APPROVAL IS DELIBERATE. The `pypi` environment below should be
+# configured with a required reviewer, per the PyPA guide's own instruction
+# that "for security reasons, you must require manual approval on each run for
+# the pypi environment". PyPI never lets a version be re-uploaded or reused, so
+# the first upload freezes that version forever - this is the one gate that is
+# cheap before and impossible after.
+
+name: Publish to PyPI
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build distributions
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+
+      - name: Build sdist and wheel
+        run: |
+          python -m pip install --upgrade pip build
+          python -m build
+
+      # twine's metadata check is the same gate the local prepublish run uses.
+      # Running it here too means a release cannot land on metadata that only
+      # ever passed on one developer's machine.
+      - name: Check metadata
+        run: |
+          python -m pip install --upgrade twine
+          python -m twine check --strict dist/*
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/
+
+  publish:
+    name: Publish to PyPI
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: pypi
+      url: https://pypi.org/p/neosignal-check
+    permissions:
+      # Mandatory for trusted publishing. This is what mints the short-lived
+      # token; without it the job cannot authenticate and no token exists to
+      # fall back on, which is the intended failure mode.
+      id-token: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
+
+      - uses: pypa/gh-action-pypi-publish@release/v1
