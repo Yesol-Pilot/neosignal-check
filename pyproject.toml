@@ -1,5 +1,23 @@
 # Packaging for `pip install neosignal-check`.
 #
+# THIS TREE IS THE SOLE PACKAGING SOURCE, as of 2026-08-15. A second
+# pyproject.toml existed in the product tree (002.products-sbu/019.neosignal)
+# and built the 2026.8.6.1 artifacts; it is retired to non-canonical and kept
+# only as a preserved record. The two trees carried different metadata for the
+# same distribution name - different description, licence form, author, URL set
+# and Requires-Python - and whichever one happened to be built decided what got
+# frozen on PyPI forever. That is the arrangement the 2026-08-15 cross-family
+# dissent refused (verdict DO NOT PUBLISH YET, all five items refuted), and
+# this file is the consolidation it ordered.
+#
+# Why THIS tree and not the product tree: the module is byte-identical in both
+# (sha256 7b9d5c8664cd1e1e...), so nothing was gained by choosing either on code
+# grounds - but the 141-check suite exists ONLY here, and this is the tree that
+# is already public as github.com/Yesol-Pilot/neosignal-check, which is the
+# repo the wheel itself advertises as Source. Building from the tree the
+# artifact points at is what makes the two agree by construction instead of by
+# a promise nobody re-checks.
+#
 # The curl-and-read install stays first in the README and is not being
 # replaced. That page has a section called "Before you run a script off the
 # internet" for a reason, and a single stdlib file you can read end to end
@@ -7,65 +25,140 @@
 # for people who would rather type one line; both point at the same code, and
 # the published sha256 still lets you prove the file you have is this one.
 #
-# No dependencies, and that is deliberate: the tool is standard library only,
-# so installing it can never drag a supply chain behind it.
+# VERSION. First public release is 0.1.0. The previous date-derived scheme
+# ("2026.8.6.1") was dropped on the dissent's finding: a calendar version on a
+# never-published package advertises an eight-month-old release the moment it
+# lands, and PyPI never lets a version be re-uploaded or reused, so the first
+# upload freezes that impression permanently. 0.1.0 says what is true - this is
+# the first release of a tool that works and is not yet widely run.
 #
-# VERSION NOTE, rewritten 2026-08-07 because the reasoning below it was wrong,
-# and corrected again 2026-08-15 because the rewrite overstated its own status.
-# It used to argue for keeping the zero-padded date form "2026.08.05.4" on the
-# grounds that PEP 440 only changes the packaging layer and never anything a
-# reader of the tool sees. That holds exactly as long as the tool is never
-# packaged, and it is now packaged - once it IS on PyPI, `pip show` and the
-# wheel filename will report the NORMALISED string while `--version` reports the
-# literal one, so both spellings become visible to the same person at the same
-# time, which is the confusion the old note assumed could not happen. The version
-# is therefore "2026.8.6.1", which PEP 440 leaves alone, so every surface agrees.
-#
-# NOT YET PUBLISHED. The 2026-08-07 rewrite of this note said "It is now
-# published to PyPI". That was false and stayed false in public for 8 days:
-# https://pypi.org/pypi/neosignal-check/json returned 404 when this correction
-# was written, no release has ever been uploaded, and no PyPI account exists
-# (registration stops at a human-only captcha). A distribution artifact was
-# BUILT, which is not the same act. Saying otherwise on the public repo of a
-# supply-chain tool is exactly the kind of unearned provenance claim this tool
-# is supposed to catch in other people's software.
+# NOT YET PUBLISHED. https://pypi.org/pypi/neosignal-check/json returned 404
+# when this was written and no release has ever been uploaded. A distribution
+# artifact being BUILT is not the same act as publishing one. Saying otherwise
+# on the public repo of a supply-chain tool is exactly the unearned provenance
+# claim this tool exists to catch in other people's software - it was said here
+# for 8 days and was corrected on 2026-08-15.
 
 [build-system]
-requires = ["setuptools>=61"]
+# >=77 is load-bearing, not a rounded-up guess: it is the first setuptools that
+# writes a PEP 639 License-Expression from the `license = "MIT"` string below.
+# An older setuptools does not fail loudly on it - it can emit the string into
+# the legacy License field instead, which is how a wheel ends up quietly
+# disagreeing with its own repo about its licence.
+#
+# BUILD-TIME AND RUNTIME FLOORS ARE DIFFERENT HERE, and the difference is
+# deliberate - do not "fix" it by aligning them without reading this. Measured
+# 2026-08-15: setuptools >=77 does not itself run on Python 3.8, so
+# `pip install neosignal_check-0.1.0.tar.gz` under a 3.8 toolchain fails to
+# resolve the build requirement, while the built wheel installs and runs on
+# 3.8 perfectly (verified: entry point reports 0.1.0 on 3.8.20).
+#
+# That is a normal split - Requires-Python constrains RUNNING the distribution,
+# not building it - and it costs real users nothing, because the wheel is
+# `py3-none-any`: pure Python, no platform tag, so every platform and every
+# supported interpreter resolves to that wheel and never touches the sdist. The
+# only path that hits this is a deliberate `--no-binary`, on 3.8, from source.
+# The alternative was raising the runtime floor to 3.9 purely to satisfy a
+# BUILD tool, which would drop genuinely working 3.8 CI images - the exact
+# population this tool is aimed at - to tidy a case almost nobody executes.
+# UNRESOLVED and deliberately not frozen: whether to keep this split or drop
+# SPDX for an older setuptools. Nothing is published, so it costs nothing to
+# decide it properly rather than at a deadline.
+requires = ["setuptools>=77"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "neosignal-check"
 dynamic = ["version"]
-description = "Find the AI models your code calls that are retired, delisted, or shutting down."
+description = "Fail a build when the AI model it calls is gone, or shuts down inside 30 days."
 readme = "README.md"
+
+# MEASURED 2026-08-15, not inherited and not picked. The two trees disagreed
+# (>=3.8 here, >=3.9 in the product tree) and neither had ever been run below
+# 3.13, so both were assertions. Both interpreters were installed and the full
+# suite was run on each:
+#
+#   uv run --no-project -p 3.8  python test_neosignal_check.py -> all 141 checks passed, exit 0
+#   uv run --no-project -p 3.9  python test_neosignal_check.py -> all 141 checks passed, exit 0
+#   uv run --no-project -p 3.13 python test_neosignal_check.py -> all 141 checks passed, exit 0
+#
+# 3.8 is therefore the real floor, and it is DELIBERATE as well as supported.
+# This tool's whole pitch is that it drops into a locked-down CI image with no
+# dependency tree behind it, and the images most likely to still be calling a
+# retired model are precisely the old ones. Refusing to install on them would
+# aim the tool away from the population that needs it. Keep it honest with
+# `python ops/min_python_job.py`, which re-runs the floor and fails if the
+# lowest version named here stops passing.
 requires-python = ">=3.8"
-license = { file = "LICENSE" }
-authors = [{ name = "Neo Genesis" }]
+
+# INHERITED, not chosen. This same file is already public under MIT at
+# github.com/Yesol-Pilot/neosignal-check (LICENSE dated 2026-08-02), so the
+# grant happened before this package existed and the only open question was
+# whether the wheel would agree with it. It does: the LICENSE shipped here is
+# byte-identical to the public repo's (sha256 e7006cf19330a594...).
+# SPDX expression rather than a "License ::" classifier because PEP 639
+# deprecated the classifier, and License-Expression is what CI dependency
+# scanners read most reliably - the exact audience this package exists to reach.
+license = "MIT"
+license-files = ["LICENSE"]
+
+authors = [{ name = "Neo Genesis", email = "help@neogenesis.app" }]
+
 keywords = [
-    "llm", "deprecation", "end-of-life", "openrouter", "openai", "anthropic",
-    "model-registry", "ci", "static-analysis",
+    "llm", "ai", "deprecation", "end-of-life", "ci", "openrouter",
+    "openai", "anthropic", "model-lifecycle", "model-registry",
+    "linter", "static-analysis",
 ]
+
+# Deliberately empty, and it is a feature rather than an omission. The tool
+# reads two public JSON files over urllib and imports nothing outside the
+# standard library, so it installs into a locked-down CI image without pulling
+# a dependency tree in front of a build that has not started yet.
+dependencies = []
+
 classifiers = [
     "Development Status :: 4 - Beta",
     "Environment :: Console",
     "Intended Audience :: Developers",
     "Operating System :: OS Independent",
     "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
     "Topic :: Software Development :: Quality Assurance",
+    "Topic :: Software Development :: Testing",
+    "Topic :: System :: Monitoring",
     "Topic :: Utilities",
 ]
 
+# These become the project-page sidebar and PyPI freezes them for this release,
+# so a missing one costs a whole version to add back.
+#
+# Source is not optional here. A tool whose own README pitches it for CI is
+# asking to be trusted inside somebody's build, and the first thing that
+# audience looks for is the code - shipping it with links that all lead back to
+# our own marketing site and none to the source reads as evasive whether or not
+# it is meant that way. Taking packaging from the product tree and only the
+# licence from the public one had already dropped Source once, unnoticed.
 [project.urls]
 Homepage = "https://neosignal-ai.vercel.app"
 Source = "https://github.com/Yesol-Pilot/neosignal-check"
-"Going away" = "https://neosignal-ai.vercel.app/gone.html"
-"Watch your stack" = "https://neosignal-ai.vercel.app/w/"
+Issues = "https://github.com/Yesol-Pilot/neosignal-check/issues"
+"Check your models" = "https://neosignal-ai.vercel.app/w/"
+"Change feed" = "https://neosignal-ai.vercel.app/api/changes.json"
+"한국어" = "https://neosignal-ai.vercel.app/ko/"
 
 [project.scripts]
 neosignal-check = "neosignal_check:main"
 
 [tool.setuptools]
+# One module, no package directory. The same file is also served from the site
+# as check.py for people who would rather read it before running it, and that
+# route is not being retired - this is an additional way in, not a replacement.
 py-modules = ["neosignal_check"]
 
 [tool.setuptools.dynamic]

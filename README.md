@@ -429,7 +429,7 @@ that was **not** a model, kept as a test case:
 | `https://github.com/google/googletest/` | a repository URL |
 
 None of them is reported, and
-[the tests](test_neosignal_check.py) fail if that ever changes — together with
+[the tests](https://github.com/Yesol-Pilot/neosignal-check/blob/main/test_neosignal_check.py) fail if that ever changes — together with
 a real id in the same directory, so the tests cannot pass by finding nothing.
 
 Running it over other people's code has found two cases where it *did* cry

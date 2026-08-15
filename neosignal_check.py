@@ -126,7 +126,13 @@ import urllib.request
 # as a package `pip show` and the wheel filename would both say one thing while
 # `--version` said another - the exact failure the paragraph above says this
 # field exists to prevent. One tool, one string, everywhere it is printed.
-__version__ = "2026.8.6.1"
+#
+# 2026-08-15: the calendar scheme is dropped for the first public release. It
+# was never published, so a date-derived version would have shipped announcing
+# itself as months old on the day it landed, and PyPI never allows a version to
+# be re-uploaded or reused - the first upload freezes that permanently. 0.1.0
+# states the true position instead: first release, works, not yet widely run.
+__version__ = "0.1.0"
 
 SITE = "https://neosignal-ai.vercel.app"
 MODELS_URL = SITE + "/api/models.json"
