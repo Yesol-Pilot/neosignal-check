@@ -15,10 +15,10 @@ python check.py .
 3 models referenced in .
 
   ok     anthropic/claude-fable-5     no change recorded
-  GONE   inclusionai/ling-3.0-tiny:fr GONE from the catalogue on 2026-08-14,
+  GONE   mancer/weaver                GONE from the catalogue on 2026-08-20,
                                       with no date in it beforehand
          src/agent.ts
-  SOON   nvidia/nemotron-nano-12b-v2- shuts down 2026-08-24 - 6 days left
+  SOON   inclusionai/ling-2.6-1t      shuts down 2026-08-24 - 4 days left
          src/agent.ts
 
 2 need attention.
@@ -55,6 +55,8 @@ reading that catalogue could have warned you.
 <!--evidence:start-->
 | vanished | model | date in the catalogue beforehand | nearest still listed |
 |---|---|---|---|
+| 2026-08-20 | `mancer/weaver` | **none** | _nothing qualifies_ |
+| 2026-08-19 | `ai21/jamba-large-1.7` | **none** | _nothing qualifies_ |
 | 2026-08-14 | `inclusionai/ling-3.0-tiny:free` | **none** | _nothing qualifies_ |
 | 2026-08-13 | `openai/gpt-5.3-chat` | **none** | `openai/gpt-5.4` |
 | 2026-08-06 | `inclusionai/ling-3.0-flash:free` | **none** | _nothing qualifies_ |
@@ -64,7 +66,7 @@ reading that catalogue could have warned you.
 | 2026-07-30 | `openai/o3-deep-research` | **none** | _nothing qualifies_ |
 | 2026-07-30 | `openai/gpt-5-codex` | **none** | `openai/gpt-5.1-codex` |
 
-As of 2026-08-18.
+As of 2026-08-20.
 <!--evidence:end--> The live list is always at
 [neosignal-ai.vercel.app/gone.html](https://neosignal-ai.vercel.app/gone.html),
 and the raw records are in
@@ -84,22 +86,22 @@ vendor pages, so it cannot tell you the model is retired. This reads both, every
 day, and the overlap is where these live.
 
 <!--stale:start-->
-**14 models are still listed after the vendor retired them.** The oldest by 704 days.
+**14 models are still listed after the vendor retired them.** The oldest by 706 days.
 
 | model | vendor's retirement date | days still listed since |
 |---|---|---|
-| `openai/gpt-3.5-turbo-0613` | 2024-09-13 | **704** |
-| `mistralai/mistral-large-2407` | 2025-03-30 | **506** |
-| `google/gemini-2.5-pro-preview-05-06` | 2025-12-02 | **259** |
-| `anthropic/claude-3-haiku` | 2026-04-20 | **120** |
-| `google/gemini-3.1-flash-lite-preview` | 2026-05-25 | **85** |
-| `anthropic/claude-opus-4` | 2026-06-15 | **64** |
+| `openai/gpt-3.5-turbo-0613` | 2024-09-13 | **706** |
+| `mistralai/mistral-large-2407` | 2025-03-30 | **508** |
+| `google/gemini-2.5-pro-preview-05-06` | 2025-12-02 | **261** |
+| `anthropic/claude-3-haiku` | 2026-04-20 | **122** |
+| `google/gemini-3.1-flash-lite-preview` | 2026-05-25 | **87** |
+| `anthropic/claude-opus-4` | 2026-06-15 | **66** |
 
 and 8 more.
 
 3 of these are still served on a platform whose own end-of-life is later - AWS Bedrock, in every current case - so for those the catalogue may be routing somewhere the model has not retired. The catalogue does not name the provider behind an entry, so that cannot be settled from it, and they are counted above rather than quietly dropped. The other 11 have no such route that we can see.
 
-As of 2026-08-18.
+As of 2026-08-20.
 <!--stale:end-->
 
 Every row is checkable in one request from
@@ -131,10 +133,10 @@ request:
 <!--stat:start-->
 | | |
 |---|---|
-| models whose catalogue entry carries an end-of-life date | **4 of 414** |
-| vendors with a dated entry in the catalogue | **2 of 60** |
+| models whose catalogue entry carries an end-of-life date | **12 of 417** |
+| vendors with a dated entry in the catalogue | **5 of 59** |
 
-**99.0% of the catalogue carries no shutdown date at all.**
+**97.1% of the catalogue carries no shutdown date at all.**
 <!--stat:end--> That is a statement about the
 catalogue, not about vendors. Vendors do publish retirement dates on their own
 documentation; the catalogue simply does not carry them. Anything reading only
@@ -158,9 +160,9 @@ This diffs the live catalogue every single day, so a disappearance is recorded
 whether or not anyone announced it.
 
 <!--calendar:start-->
-Of the **8 removals** recorded so far, **2** had a date on the vendor's own deprecation page before they vanished and **6** did not. A calendar built on vendor docs catches the 2. Nothing but a daily diff of the catalogue catches the other 6 - the kind that takes a running product down without notice.
+Of the **10 removals** recorded so far, **2** had a date on the vendor's own deprecation page before they vanished and **8** did not. A calendar built on vendor docs catches the 2. Nothing but a daily diff of the catalogue catches the other 8 - the kind that takes a running product down without notice.
 
-None of the 8 carried an end-of-life date in the **catalogue** beforehand - the field anything reading only the catalogue would have to rely on. Each removal in [`/api/changes.json`](https://neosignal-ai.vercel.app/api/changes.json) carries `vendor_announced`, and the announced ones carry the date and the vendor page it was read from, so this is checkable rather than assertable.
+None of the 10 carried an end-of-life date in the **catalogue** beforehand - the field anything reading only the catalogue would have to rely on. Each removal in [`/api/changes.json`](https://neosignal-ai.vercel.app/api/changes.json) carries `vendor_announced`, and the announced ones carry the date and the vendor page it was read from, so this is checkable rather than assertable.
 <!--calendar:end-->
 
 ## It reads the vendor's own deprecation page too
@@ -179,7 +181,7 @@ record. Both sources, one answer:
 <!--both:start-->
 | | |
 |---|---|
-| models with a date in the catalogue | **4** |
+| models with a date in the catalogue | **12** |
 | models with a date from their vendor | **20** |
 <!--both:end-->
 
@@ -194,9 +196,9 @@ sentence, because which side is stale is the useful part.
 ### How much of the catalogue this actually covers
 
 <!--coverage:start-->
-**Vendor pages are read for 4 of the 60 vendors in the catalogue** - [anthropic](https://docs.claude.com/en/docs/about-claude/model-deprecations), [google](https://ai.google.dev/gemini-api/docs/deprecations), [mistralai](https://docs.mistral.ai/getting-started/models/models_overview/), [openai](https://platform.openai.com/docs/deprecations) - which is 181 of 414 models. For the other 233, the only lifecycle field is the catalogue's own, and that is empty for 99.0% of the catalogue.
+**Vendor pages are read for 4 of the 59 vendors in the catalogue** - [anthropic](https://docs.claude.com/en/docs/about-claude/model-deprecations), [google](https://ai.google.dev/gemini-api/docs/deprecations), [mistralai](https://docs.mistral.ai/getting-started/models/models_overview/), [openai](https://platform.openai.com/docs/deprecations) - which is 182 of 417 models. For the other 235, the only lifecycle field is the catalogue's own, and that is empty for 97.1% of the catalogue.
 
-So for **229 models there is no published retirement date anywhere this looks** - no vendor page read, nothing in the catalogue entry. That is the gap, stated rather than implied: a silent removal is the only warning those models will ever give, which is why the daily diff is the part that matters. The vendor list above is in [`/api/changes.json`](https://neosignal-ai.vercel.app/api/changes.json) under `vendor_pages_read`, so it can be checked rather than taken.
+So for **223 models there is no published retirement date anywhere this looks** - no vendor page read, nothing in the catalogue entry. That is the gap, stated rather than implied: a silent removal is the only warning those models will ever give, which is why the daily diff is the part that matters. The vendor list above is in [`/api/changes.json`](https://neosignal-ai.vercel.app/api/changes.json) under `vendor_pages_read`, so it can be checked rather than taken.
 <!--coverage:end-->
 
 **What it still cannot do:** a vendor page listing only deprecations says
@@ -300,26 +302,24 @@ Generated by running the tool, so it cannot describe a shape it no longer has:
 <!--jsonout:start-->
 ```json
 {
-  "action_required": 3,
-  "models_referenced": 6,
+  "action_required": 2,
+  "models_referenced": 5,
   "results": [
     {
-      "detail": "GONE from the catalogue on 2026-08-06, with no date in it beforehand",
+      "detail": "GONE from the catalogue on 2026-08-19, with no date in it beforehand",
       "files": [
         "src/llm.py"
       ],
       "level": "gone",
-      "model": "inclusionai/ling-3.0-flash:free"
+      "model": "ai21/jamba-large-1.7"
     },
     {
-      "detail": "its vendor published 2026-10-16 and has since withdrawn it - there is no published date now",
+      "detail": "shuts down 2026-09-30",
       "files": [
         "src/llm.py"
       ],
       "level": "moved",
-      "model": "google/gemini-2.5-pro",
-      "withdrawn_date": "2026-10-16",
-      "withdrawn_noticed": "2026-08-03"
+      "model": "dots-studio/dots-3-note-preview:free"
     },
     {
       "detail": "no change recorded",
